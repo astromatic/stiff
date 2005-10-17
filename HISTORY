@@ -1,0 +1,14 @@
+Jan 2005: V1.10
+        - TIFF image is no longer upside-down
+        - Documentation written
+        - New TERAPIX page
+Nov 2004: V1.8
+        - Many bug fixes
+        - COLOUR_SAT and GAMMA_FAC parameters added
+Apr 2003: V1.6
+        - Much improved brightness/contrast scaling
+
+Jan 2003: V1.2
+        - Autoconfigured package
+
+Jun 2001: First 1.0 and 1.1 versions

@@ -1,0 +1,57 @@
+%define name @PACKAGE_NAME@
+%define version @PACKAGE_VERSION@
+%define release 1
+
+Summary: convert FITS images to TIFF format
+Name: %{name}
+Version: %{version}
+Release: %{release}
+Source0: ftp://ftp.iap.fr/pub/from_users/bertin/%{name}/%{name}-%{version}.tar.gz
+URL: http://terapix.iap.fr/soft/%{name}
+License: LGPL
+Group: Sciences/Astronomy
+BuildRoot: %{_tmppath}/%{name}-buildroot
+Prefix: %{_prefix}
+
+%description
+STIFF is a program that convert scientific FITS images to the
+more popular TIFF, in 8 (grayscale) or 24 (true colour) bits per pixel.
+
+%prep
+%setup -q
+
+%build
+if test "$GCCFLAGS"; then
+./configure --enable-static --prefix=$RPM_BUILD_ROOT/usr/local/ --mandir=$RPM_BUILD_ROOT/usr/local/man/
+make CFLAGS="$GCCFLAGS"
+else
+./configure --prefix=$RPM_BUILD_ROOT/usr/local/ --mandir=$RPM_BUILD_ROOT/usr/local/man/
+make
+fi
+
+%install
+make install
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+/usr/local/bin/@PACKAGE_NAME@
+/usr/local/man/man1/@PACKAGE_NAME@.1
+/usr/local/man/manx/@PACKAGE_NAME@.x
+%doc AUTHORS BUGS ChangeLog COPYING HISTORY INSTALL README THANKS
+
+%changelog
+* @DATE2@ @PACKAGER@ <@PACKAGE_BUGREPORT@>
+- Automatic RPM rebuild
+* Mon Feb 17 2003 Emmanuel Bertin <bertin@iap.fr>
+- Fourth RPM build
+* Sat Feb 01 2003 Emmanuel Bertin <bertin@iap.fr>
+- Third RPM build
+* Mon Jan 27 2003 Emmanuel Bertin <bertin@iap.fr>
+- Second RPM build
+* Sun Jan 19 2003 Emmanuel Bertin <bertin@iap.fr>
+- First RPM build
+
+# end of file

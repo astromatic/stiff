@@ -1,0 +1,42 @@
+/*
+                                ChangeLog
+
+*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+*
+*       Part of:        STIFF
+*
+*       Author:         E. BERTIN (IAP)
+*
+*       Contents:       log of changes made to the STIFF source code
+*
+*       Last modify:    10/01/2005
+*
+*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+*/
+
+Who     When            Where(mostly)   What
+
+EB      15/01/2003      -               Added ChangeLog.
+
+EB      27/01/2003      image.c         Replaced hmedian() (Heapsort) with
+                                        qmedian (modified Quick-Select).
+
+EB      01/02/2003      image_convert() Buffer overflow with binning fixed.
+                        load_field()    Removed memory leak with cat structure.
+                        preflist.h      set the default MAX_LEVEL to 0.995
+
+EB      10/04/2003      fast_median()   Fixed a bug appearing in odd cases.
+
+EB      22/05/2003      fitscat_defs.h  A (long) in QFSEEK() ruined LFS.
+
+EB      18/11/2004      -               Added colour enhancement and
+                                        luminance gamma correction.
+                        create_tiff()   Fixed TIFF header corruption.
+
+EB      11/12/2004      -               New RPM build system.
+                                        New banner and --version display
+
+EB      01/01/2005      image_convert() Image up/down flipping implemented.
+
+EB      10/01/2005      -               Added documentation to distribution.
+                        preflist.h      COLOUR_SAT defaulted back to 1.0.
