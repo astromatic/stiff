@@ -4,8 +4,8 @@ AUTOMAKE_OPTIONS	= foreign no-dependencies
 SUBDIRS			= man src
 EXTRA_DIST		= doc AUTHORS BUGS ChangeLog COPYING \
 			  HISTORY INSTALL README THANKS \
-			  acx_prog_cc_optim.m4 
-RPM_ROOTDIR		= /usr/src/RPM
+			  acx_prog_cc_optim.m4 acx_pthread.m4
+RPM_ROOTDIR		= `rpmbuild --nobuild -E %_topdir`
 RPM_SRCDIR		= $(RPM_ROOTDIR)/SOURCES
 rpm:	dist
 	cp -f $(PACKAGE_NAME)-$(PACKAGE_VERSION).tar.gz $(RPM_SRCDIR)
@@ -15,7 +15,7 @@ rpm-opteron:	dist
 	cp -f $(PACKAGE_NAME)-$(PACKAGE_VERSION).tar.gz $(RPM_SRCDIR)
 	GCCFLAGS="-O3 -funroll-loops -fomit-frame-pointer -Wall \
 		-march=opteron" rpmbuild -ba --target=x86_64 \
-		--clean $(PACKAGE_NAME).spec                                                             
+		--clean $(PACKAGE_NAME).spec
 
 rpm-athlon:	dist
 	cp -f $(PACKAGE_NAME)-$(PACKAGE_VERSION).tar.gz $(RPM_SRCDIR)
