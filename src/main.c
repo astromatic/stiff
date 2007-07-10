@@ -9,7 +9,7 @@
 *
 *	Contents:	Parsing of the command line.
 *
-*	Last modify:	11/12/2004
+*	Last modify:	10/07/2007
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -31,8 +31,8 @@
 #define		SYNTAX \
 EXECUTABLE " [<fits_file1>] [<fits_file2> <fits_file3>]\n"\
 "      [-c <configuration_file>] [-<keyword> <value>]\n"\
-"> or, to dump a default configuration file:\n" \
-"> " EXECUTABLE " -d \n"
+"> to dump a default configuration file: " EXECUTABLE " -d \n" \
+"> to dump a default extended configuration file: " EXECUTABLE " -dd \n"
 
 extern const char	notokstr[];
 
@@ -42,7 +42,7 @@ int	main(int argc, char *argv[])
   {
    static char	prefsname[MAXCHAR];
    char		**argkey, **argval, *str;
-   int		a, narg, nim, opt;
+   int		a, narg, nim, opt,opt2;
 
   if (argc<2)
     {
@@ -65,10 +65,14 @@ int	main(int argc, char *argv[])
     if (*(argv[a]) == '-')
       {
       opt = (int)argv[a][1];
-      if (strlen(argv[a])<3 || opt == '-')
+      if (strlen(argv[a])<4 || opt == '-')
         {
+        opt2 = (int)tolower((int)argv[a][2]);
         if (opt == '-')
-          opt = (int)tolower((int)argv[a][2]);
+          {
+          opt = opt2;
+          opt2 = (int)tolower((int)argv[a][3]);
+          }
         switch(opt)
           {
           case 'c':
@@ -76,12 +80,12 @@ int	main(int argc, char *argv[])
               strcpy(prefsname, argv[++a]);
             break;
           case 'd':
-            dumpprefs();
+            dumpprefs(opt2=='d' ? 1 : 0);
             exit(EXIT_SUCCESS);
             break;
           case 'v':
             printf("%s version %s (%s)\n", BANNER,MYVERSION,DATE);
-            exit(0);
+            exit(EXIT_SUCCESS);
             break;
           case 'h':
           default:

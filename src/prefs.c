@@ -9,7 +9,7 @@
 *
 *	Contents:	Functions to handle the configuration file.
 *
-*	Last modify:	09/01/2005
+*	Last modify:	10/07/2007
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -34,14 +34,16 @@
 /*
 Print the default preference parameters.
 */
-void	dumpprefs(void)
+void    dumpprefs(int state)
   {
-   char	**dp;
+   char **dp;
 
   dp = default_prefs;
   while (**dp)
     if (**dp != '*')
       printf("%s\n",*(dp++));
+    else if (state)
+      printf("%s\n",*(dp++)+1);
     else
       dp++;
   return;

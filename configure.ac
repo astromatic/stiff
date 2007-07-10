@@ -1,12 +1,12 @@
 # configure.in for STIFF
-# (C) E.Bertin 2003-2005
+# (C) E.Bertin 2003-2007
 # Process this file with autoconf to produce a configure script.
 # First, disable the annoying config.cache
 define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(stiff, 1.10, [bertin@iap.fr])
+AC_INIT(stiff, 1.11, [bertin@iap.fr])
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_AUX_DIR(autoconf)
 AM_CONFIG_HEADER(config.h)
@@ -47,39 +47,27 @@ AC_ARG_ENABLE(icc,
         use_icc="no"
 	AC_MSG_RESULT([no]))
 
-# Provide special option for the Assure debugger
-AC_MSG_CHECKING([for Assure debugger mode])
-AC_ARG_ENABLE(assure,
-	[AC_HELP_STRING([--enable-assure],
-	[Enable special mode for compilation with the Assure debugger \
+# Provide special option for gprof profiling
+AC_MSG_CHECKING([for gprof profiler mode])
+AC_ARG_ENABLE(gprof,
+        [AC_HELP_STRING([--enable-gprof],
+        [Enable special mode for compilation with the gprof profiler \
 (off by default)])],
-        use_assure="yes"
-        cclist="assuretcc $cclist"
-	AC_MSG_RESULT([yes]),
-        use_assure="no"
-	AC_MSG_RESULT([no]))
+        use_gprof="yes"
+        AC_MSG_RESULT([yes]),
+        use_gprof="no"
+        AC_MSG_RESULT([no]))
 
-# Provide special option for the Insure++ debugger
-AC_MSG_CHECKING([for Insure++ debugger mode])
-AC_ARG_ENABLE(insure,
-	[AC_HELP_STRING([--enable-insure],
-	[Enable special mode for compilation with the Insure++ debugger \
+# Enable static linking
+AC_MSG_CHECKING([static linking])
+AC_ARG_ENABLE(static,
+        [AC_HELP_STRING([--enable-static],
+        [Enable static linking \
 (off by default)])],
-        use_insure="yes"
-        cclist="insure $cclist"
-	AC_MSG_RESULT([yes]),
-        use_insure="no"
-	AC_MSG_RESULT([no]))
-
-# Provide special option for the e-fence malloc checker
-AC_MSG_CHECKING([for e-fence mode])
-AC_ARG_ENABLE(efence,
-	[AC_HELP_STRING([--enable-efence],
-	[Enable linking with the -e-fence library (off by default)])],
-        use_efence="yes"
-	AC_MSG_RESULT([yes]),
-        use_efence="no"
-	AC_MSG_RESULT([no]))
+        use_static="yes"
+        AC_MSG_RESULT([yes]),
+        use_static="no"
+        AC_MSG_RESULT([no]))
 
 # Checks for programs.
 # GCC is chosen last because it is likely to yield less optimized code
@@ -119,27 +107,27 @@ AC_FUNC_FSEEKO
 
 # Special optimization options for the INTEL C compiler
 if test $use_icc = "yes" -a $CC = "icc"; then
-  CFLAGS="$CFLAGS -O3 -axiMKW -ipo -ipo_obj -unroll"
+  CFLAGS="$CFLAGS -O3 -axPW -ip -unroll"
 fi
 
-# Special options for the Insure++ debugger
-if test $use_insure = "yes"; then
-  CC="insure"
-  CFLAGS="-g"
-else
-LDFLAGS="$LDFLAGS -static"
+# Debugging
+if test "$use_debug" = "yes"; then
+  CFLAGS="-g $CFLAGS"
 fi
 
-# Special options for the Assure debugger
-rootsrcdir=`pwd`
-if test $use_assure = "yes" -a $CC = "assuretcc"; then
-  CFLAGS="-WApname=$rootsrcdir/$PACKAGE"
-  LDFLAGS="-WApname=$rootsrcdir/$PACKAGE"
+# Link with gprof option
+if test "$use_gprof" = "yes"; then
+  if test "$use_icc" = "yes"; then
+    CFLAGS="$CFLAGS -pq"
+  else
+    CFLAGS="$CFLAGS -pg"
+  fi
+  use_static="no"
 fi
 
-# Link with e-fence option
-if test "$use_efence" = "yes"; then
-  LIBS="-lefence $LIBS"
+# Static linking option
+if test "$use_static" = "yes"; then
+  LDFLAGS="-all-static $LDFLAGS"
 fi
 
 # Override automatic CFLAGS and LDFLAGS with those of user
@@ -154,5 +142,11 @@ fi
 AC_MSG_RESULT([I will compile using:  $CC $CFLAGS])
 AC_MSG_RESULT([I will link using:     $CC $LDFLAGS $LIBS])
 
-AC_CONFIG_FILES(Makefile man/Makefile src/Makefile src/fits/Makefile stiff.spec man/stiff.1)
+AC_CONFIG_FILES([
+Makefile
+man/Makefile
+src/Makefile
+src/fits/Makefile
+stiff.spec
+man/stiff.1])
 AC_OUTPUT
