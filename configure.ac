@@ -1,12 +1,12 @@
 # configure.in for STIFF
-# (C) E.Bertin 2003-2007
+# (C) E.Bertin 2003-2008
 # Process this file with autoconf to produce a configure script.
 # First, disable the annoying config.cache
 define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(stiff, 1.11, [bertin@iap.fr])
+AC_INIT(stiff, 1.12, [bertin@iap.fr])
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_AUX_DIR(autoconf)
 AM_CONFIG_HEADER(config.h)
@@ -47,28 +47,6 @@ AC_ARG_ENABLE(icc,
         use_icc="no"
 	AC_MSG_RESULT([no]))
 
-# Provide special option for gprof profiling
-AC_MSG_CHECKING([for gprof profiler mode])
-AC_ARG_ENABLE(gprof,
-        [AC_HELP_STRING([--enable-gprof],
-        [Enable special mode for compilation with the gprof profiler \
-(off by default)])],
-        use_gprof="yes"
-        AC_MSG_RESULT([yes]),
-        use_gprof="no"
-        AC_MSG_RESULT([no]))
-
-# Enable static linking
-AC_MSG_CHECKING([static linking])
-AC_ARG_ENABLE(static,
-        [AC_HELP_STRING([--enable-static],
-        [Enable static linking \
-(off by default)])],
-        use_static="yes"
-        AC_MSG_RESULT([yes]),
-        use_static="no"
-        AC_MSG_RESULT([no]))
-
 # Checks for programs.
 # GCC is chosen last because it is likely to yield less optimized code
 AC_PROG_CC([$cclist])
@@ -105,15 +83,27 @@ AC_CHECK_FUNCS([atexit memmove memset munmap strchr strpbrk strrchr strspn strcs
 AC_SYS_LARGEFILE
 AC_FUNC_FSEEKO
 
-# Special optimization options for the INTEL C compiler
-if test $use_icc = "yes" -a $CC = "icc"; then
-  CFLAGS="$CFLAGS -O3 -axPW -ip -unroll"
-fi
+# Provide special option for gprof profiling
+AC_MSG_CHECKING([for gprof profiler mode])
+AC_ARG_ENABLE(gprof,
+        [AC_HELP_STRING([--enable-gprof],
+        [Enable special mode for compilation with the gprof profiler \
+(off by default)])],
+        use_gprof="yes"
+        AC_MSG_RESULT([yes]),
+        use_gprof="no"
+        AC_MSG_RESULT([no]))
 
-# Debugging
-if test "$use_debug" = "yes"; then
-  CFLAGS="-g $CFLAGS"
-fi
+# Enable static linking
+AC_MSG_CHECKING([static linking])
+AC_ARG_ENABLE(static,
+        [AC_HELP_STRING([--enable-static],
+        [Enable static linking \
+(off by default)])],
+        use_static="yes"
+        AC_MSG_RESULT([yes]),
+        use_static="no"
+        AC_MSG_RESULT([no]))
 
 # Link with gprof option
 if test "$use_gprof" = "yes"; then
@@ -127,16 +117,16 @@ fi
 
 # Static linking option
 if test "$use_static" = "yes"; then
-  LDFLAGS="-all-static $LDFLAGS"
+  LDFLAGS="-static -shared-libgcc $LDFLAGS"
 fi
 
 # Override automatic CFLAGS and LDFLAGS with those of user
-if test -n "$mycflags"; then
-CFLAGS="$mycflags"
-fi
-if test -n "$myldflags"; then
-LDFLAGS="$myldflags"
-fi
+#if test -n "$mycflags"; then
+#CFLAGS="$mycflags"
+#fi
+#if test -n "$myldflags"; then
+#LDFLAGS="$myldflags"
+#fi
 
 # Display compiler and linker flags
 AC_MSG_RESULT([I will compile using:  $CC $CFLAGS])
@@ -150,3 +140,4 @@ src/fits/Makefile
 stiff.spec
 man/stiff.1])
 AC_OUTPUT
+
