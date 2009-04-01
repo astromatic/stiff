@@ -1,5 +1,5 @@
 # Main Makefile for STIFF
-# Copyright (C) 2003-2008 Emmanuel Bertin.
+# Copyright (C) 2003-2009 Emmanuel Bertin.
 AUTOMAKE_OPTIONS	= foreign no-dependencies
 SUBDIRS			= man src
 EXTRA_DIST		= doc AUTHORS BUGS ChangeLog COPYING \
@@ -17,16 +17,4 @@ rpm:	dist
 rpm-icc:	dist
 	cp -f $(PACKAGE_NAME)-$(PACKAGE_VERSION).tar.gz $(RPM_SRCDIR)
 	USE_ICC="1" rpmbuild -ba --clean --nodeps $(PACKAGE_NAME).spec
-
-rpm-opteron:	dist
-	cp -f $(PACKAGE_NAME)-$(PACKAGE_VERSION).tar.gz $(RPM_SRCDIR)
-	GCCFLAGS="-O3 -funroll-loops -fomit-frame-pointer -Wall \
-		-march=opteron" rpmbuild -ba --target=x86_64 \
-		--clean $(PACKAGE_NAME).spec
-
-rpm-athlon:	dist
-	cp -f $(PACKAGE_NAME)-$(PACKAGE_VERSION).tar.gz $(RPM_SRCDIR)
-	GCCFLAGS="-O3 -funroll-loops -fomit-frame-pointer -Wall -m32 \
-		-march=i686 -msse -mfpmath=sse -mtune=athlon" rpmbuild \
-		-ba --target=i686 --clean $(PACKAGE_NAME).spec
 
