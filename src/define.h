@@ -9,7 +9,7 @@
 *
 *	Contents:	global definitions.
 *
-*	Last modify:	17/02/2003
+*	Last modify:	01/04/2009
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -24,15 +24,11 @@
 /*------------------------ what, who, when and where ------------------------*/
 
 #define         BANNER          "STIFF"
-#ifdef USE_THREADS
-#define		MYVERSION	VERSION "-MP"
-#else
 #define		MYVERSION	VERSION
-#endif
 #define         EXECUTABLE      "stiff"
 #define         COPYRIGHT       "Emmanuel BERTIN <bertin@iap.fr>"
-#define		WEBSITE		"http://terapix.iap.fr/soft/stiff"
-#define         INSTITUTE       "TERAPIX team at IAP  http://terapix.iap.fr"
+#define		WEBSITE		"http://astromatic.iap.fr/software/stiff"
+#define         INSTITUTE       "IAP http://www.iap.fr"
 
 /*----------------------------- Physical constants --------------------------*/
 
