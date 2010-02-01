@@ -44,6 +44,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/@PACKAGE_NAME@
 %{_mandir}/man1/@PACKAGE_NAME@.1*
 %{_mandir}/manx/@PACKAGE_NAME@.x*
+%{_datadir}/@PACKAGE_NAME@
 
 %changelog
 * @DATE2@ @PACKAGER@ <@PACKAGE_BUGREPORT@>

@@ -9,15 +9,15 @@
 *
 *	Contents:	global definitions.
 *
-*	Last modify:	01/04/2009
+*	Last modify:	01/01/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
 
 /* Check if we are using a configure script here */
 #ifndef HAVE_CONFIG_H
-#define		VERSION		"1.x"
-#define		DATE		"2003-x-x"
+#define		VERSION		"2.x"
+#define		DATE		"2010-x-x"
 #define		THREADS_NMAX	16		/* max. number of threads */
 #endif
 
@@ -27,7 +27,7 @@
 #define		MYVERSION	VERSION
 #define         EXECUTABLE      "stiff"
 #define         COPYRIGHT       "Emmanuel BERTIN <bertin@iap.fr>"
-#define		WEBSITE		"http://astromatic.iap.fr/software/stiff"
+#define		WEBSITE		"http://astromatic.net/software/stiff"
 #define         INSTITUTE       "IAP http://www.iap.fr"
 
 /*----------------------------- Physical constants --------------------------*/

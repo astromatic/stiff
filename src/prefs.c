@@ -9,7 +9,7 @@
 *
 *	Contents:	Functions to handle the configuration file.
 *
-*	Last modify:	10/07/2007
+*	Last modify:	12/01/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -23,6 +23,14 @@
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<string.h>
+#include        <unistd.h>
+#if defined(USE_THREADS) \
+&& (defined(__APPLE__) || defined(FREEBSD) || defined(NETBSD))	/* BSD, Apple */
+ #include	<sys/types.h>
+ #include	<sys/sysctl.h>
+#elif defined(USE_THREADS) && defined(HAVE_MPCTL)		/* HP/UX */
+ #include	<sys/mpctl.h>
+#endif
 
 #include	"define.h"
 #include	"globals.h"
@@ -118,15 +126,15 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
         break;
       }
 
-    keyword = strtok(str, notokstr);
+    keyword = mystrtok(str, notokstr);
     if (keyword && keyword[0]!=0 && keyword[0]!=(char)'#')
       {
-     if (warn>=10)
+      if (warn>=10)
         error(EXIT_FAILURE, "*Error*: No valid keyword found in ", filename);
       nkey = findkeys(keyword, keylist, FIND_STRICT);
       if (nkey!=RETURN_ERROR)
         {
-        value = strtok((char *)NULL, notokstr);
+        value = mystrtok((char *)NULL, notokstr);  
 #ifdef	HAVE_GETENV
 /*------ Expansion of environment variables (preceded by '$') */
         if (value && (dolpos=strchr(value, '$')))
@@ -221,7 +229,7 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
                 ((int *)(key[nkey].ptr))[i] = (tolower((int)*cp)=='y')?1:0;
               else
                 error(EXIT_FAILURE, keyword, " value must be Y or N");
-              value = strtok((char *)NULL, notokstr);
+              value = mystrtok((char *)NULL, notokstr);
               }
             if (i<key[nkey].nlistmin)
               error(EXIT_FAILURE, keyword, " list has not enough members");
@@ -232,13 +240,13 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
             for (i=0; i<MAXLIST&&value&&value[0]!=(char)'#'; i++)
               {
               if (i>=key[nkey].nlistmax)
-                error(EXIT_FAILURE, keyword, " has too many members");
+                error(EXIT_FAILURE, keyword, " list has too many members");
               ival = strtol(value, NULL, 0);
               if (ival>=key[nkey].imin && ival<=key[nkey].imax)
                 ((int *)key[nkey].ptr)[i] = ival;
               else
                 error(EXIT_FAILURE, keyword, " keyword out of range");
-              value = strtok((char *)NULL, notokstr);
+              value = mystrtok((char *)NULL, notokstr);
               }
             if (i<key[nkey].nlistmin)
               error(EXIT_FAILURE, keyword, " list has not enough members");
@@ -255,7 +263,7 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
                 ((double *)key[nkey].ptr)[i] = dval;
               else
                 error(EXIT_FAILURE, keyword, " keyword out of range");
-              value = strtok((char *)NULL, notokstr);
+              value = mystrtok((char *)NULL, notokstr);
               }
             if (i<key[nkey].nlistmin)
               error(EXIT_FAILURE, keyword, " list has not enough members");
@@ -272,7 +280,7 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
                 ((int *)(key[nkey].ptr))[i] = ival;
               else
                 error(EXIT_FAILURE, keyword, " set to an unknown keyword");
-              value = strtok((char *)NULL, notokstr);
+              value = mystrtok((char *)NULL, notokstr);
               }
             if (i<key[nkey].nlistmin)
               error(EXIT_FAILURE, keyword, " list has not enough members");
@@ -294,7 +302,7 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
               free(((char **)key[nkey].ptr)[i]);
               QMALLOC(((char **)key[nkey].ptr)[i], char, MAXCHAR);
               strcpy(((char **)key[nkey].ptr)[i], value);
-              value = strtok((char *)NULL, notokstr);
+              value = mystrtok((char *)NULL, notokstr);
               }
             if (i<key[nkey].nlistmin)
               error(EXIT_FAILURE, keyword, " list has not enough members");
@@ -330,7 +338,7 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
 /*
 find an item within a list of keywords.
 */
-int	findkeys(char *str, char keyw[][16], int mode)
+int	findkeys(char *str, char keyw[][32], int mode)
 
   {
   int i;
@@ -369,6 +377,107 @@ int	cistrcmp(char *cs, char *ct, int mode)
   }
 
 
+/******************************* mystrtok ***********************************/
+/*
+Home-brewed strtok() function which handles double quotes in a special way.
+*/
+char	*mystrtok(char *str, const char *delim)
+
+  {
+   static char	*sptr;
+   char		*ptr;
+
+  ptr = str? str: sptr;
+  ptr = ptr+strspn(ptr, delim);
+  if (!*ptr)
+    {
+    sptr = NULL;
+    return NULL;
+    }
+
+  if (*ptr == '"')
+    {
+    ptr++;
+    do
+      {
+      sptr = strchr(ptr,'"');
+      if (!sptr)
+        return ptr;
+      } while (*(sptr-1) == '\\');
+          }
+  else
+    sptr = ptr + strcspn(ptr, delim);
+
+  if (*sptr)
+    *(sptr++) = (char)'\0';
+
+  return ptr;
+  }
+
+
+/********************************* preprefs **********************************/
+/*
+Set number of threads and endianity.
+*/
+void	preprefs()
+
+  {
+   unsigned short	ashort=1;
+#ifdef USE_THREADS
+   int			nproc;
+#endif
+
+/* Test if byteswapping will be needed */
+  bswapflag = *((char *)&ashort);
+
+/* Multithreading */
+#ifdef USE_THREADS
+  if (!prefs.nthreads)
+    {
+/*-- Get the number of processors for parallel builds */
+/*-- See, e.g. http://ndevilla.free.fr/threads */
+    nproc = -1;
+#if defined(_SC_NPROCESSORS_ONLN)		/* AIX, Solaris, Linux */
+    nproc = (int)sysconf(_SC_NPROCESSORS_ONLN);
+#elif defined(_SC_NPROCESSORS_CONF)
+    nproc = (int)sysconf(_SC_NPROCESSORS_CONF);
+#elif defined(__APPLE__) || defined(FREEBSD) || defined(NETBSD)	/* BSD, Apple */
+    {
+     int        mib[2];
+     size_t     len;
+
+     mib[0] = CTL_HW;
+     mib[1] = HW_NCPU;
+     len = sizeof(nproc);
+     sysctl(mib, 2, &nproc, &len, NULL, 0);
+     }
+#elif defined (_SC_NPROC_ONLN)			/* SGI IRIX */
+    nproc = sysconf(_SC_NPROC_ONLN);
+#elif defined(HAVE_MPCTL)			/* HP/UX */
+    nproc =  mpctl(MPC_GETNUMSPUS_SYS, 0, 0);
+#endif
+
+    if (nproc>0)
+      prefs.nthreads = nproc;
+    else
+      {
+      prefs.nthreads = 2;
+      warning("Cannot find the number of CPUs on this system:",
+		"NTHREADS defaulted to 2");
+      }
+    }
+
+#else
+  if (prefs.nthreads != 1)
+    {
+    prefs.nthreads = 1;
+    warning("NTHREADS != 1 ignored: ",
+	"this build of " BANNER " is single-threaded");
+    }
+#endif
+  }
+
+
 /********************************* useprefs *********************************/
 /*
 Update various structures according to the prefs.
@@ -376,23 +485,25 @@ Update various structures according to the prefs.
 void	useprefs(void)
 
   {
-   unsigned short	ashort=1;
-   int			i;
+   char	*str;
+   int	i;
 
+  if (prefs.bpp>8)
+    prefs.bpp = 16;
 
-/* Test if byteswapping will be needed */
-  bswapflag = *((char *)&ashort);
-
-/* Multithreading */
-#ifndef USE_THREADS
-  if (prefs.nthreads > 1)
+  prefs.format_type2 = prefs.format_type;
+  if (prefs.format_type == FORMAT_AUTO)
     {
-    prefs.nthreads = 1;
-    warning("NTHREADS > 1 ignored: ",
-		"this build of " BANNER " is single-threaded");
+    prefs.format_type2 = FORMAT_TIFF;		/* TIFF by default */
+    if ((str = strrchr(prefs.tiff_name, '.'))
+	&& (!cistrcmp(str, ".ptif", FIND_STRICT)
+	|| !cistrcmp(str, ".ptiff", FIND_STRICT)))
+      prefs.format_type2 = FORMAT_TIFF_PYRAMID;
     }
-#endif
-
+  for (i=prefs.nbin_size; i<2; i++)
+    prefs.bin_size[i] = prefs.bin_size[prefs.nbin_size-1];
+  for (i=prefs.nmin_size; i<2; i++)
+    prefs.min_size[i] = prefs.min_size[prefs.nmin_size-1];
   for (i=prefs.nback_type; i<prefs.nfile; i++)
     prefs.back_type[i] = prefs.back_type[prefs.nback_type-1];
   prefs.nback_type = prefs.nfile;
@@ -417,4 +528,5 @@ void	useprefs(void)
 
   return;
   }
+
 

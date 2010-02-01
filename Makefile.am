@@ -1,10 +1,11 @@
 # Main Makefile for STIFF
-# Copyright (C) 2003-2009 Emmanuel Bertin.
+# Copyright (C) 2003-2010 Emmanuel Bertin.
 AUTOMAKE_OPTIONS	= foreign no-dependencies
 SUBDIRS			= man src
-EXTRA_DIST		= doc AUTHORS BUGS ChangeLog COPYRIGHT \
+dist_pkgdata_DATA	= doc xsl/stiff.xsl
+EXTRA_DIST		= AUTHORS BUGS ChangeLog COPYRIGHT \
 			  HISTORY INSTALL README THANKS \
-			  acx_prog_cc_optim.m4 acx_pthread.m4
+			   acx_libtiff.m4 acx_prog_cc_optim.m4 acx_pthread.m4
 RPM_ROOTDIR		= `rpmbuild --nobuild -E %_topdir`
 RPM_SRCDIR		= $(RPM_ROOTDIR)/SOURCES
 dist-hook:

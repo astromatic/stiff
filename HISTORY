@@ -1,3 +1,11 @@
+Feb 2010: V2.0
+        - Pyramidal TIFF support
+        - BigTIFF support
+        - SRGB and Rec.709 gamma correction support
+        - TIFF lossy and lossless compression support
+        - Supports up to 16 bits per component
+        - multithreaded code
+        - XML VO-Table metadata output
 Jan 2005: V1.10
         - TIFF image is no longer upside-down
         - Documentation written

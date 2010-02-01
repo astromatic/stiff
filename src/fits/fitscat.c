@@ -9,7 +9,7 @@
 *
 *	Contents:	low-level functions for handling LDAC FITS catalogs.
 *
-*	Last modify:	25/09/2004
+*	Last modify:	05/12/2009
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -161,7 +161,7 @@ INPUT	Pointer to a catalog structure,
 OUTPUT	-.
 NOTES	Unallocated pointers should have been put to NULL.
 AUTHOR	E. Bertin (IAP & Leiden observatory)
-VERSION	05/06/2001
+VERSION	05/12/2009
  ***/
 void	free_cat(catstruct **cat, int ncat)
 
@@ -175,10 +175,10 @@ void	free_cat(catstruct **cat, int ncat)
     {
     if ((*thecat)->file)
       close_cat(*thecat);
-    remove_tabs(*(thecat++));
+    remove_tabs(*thecat);
+    free(*(thecat++));
     }
 
-  free(*cat);
 
   return;
   }

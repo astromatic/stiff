@@ -9,7 +9,7 @@
 *
 *	Contents:	Global declarations.
 *
-*	Last modify:	25/06/2001
+*	Last modify:	30/12/2009
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -20,4 +20,8 @@
 char		gstr[MAXCHAR];
 
 /*------------------------------- functions ---------------------------------*/
-extern	void	makeit(void);
+extern double	counter_seconds();
+
+extern void	makeit(void),
+		write_error(char *msg1, char *msg2);
+

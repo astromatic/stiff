@@ -1,15 +1,15 @@
 # configure.in for STIFF
-# (C) E.Bertin 2003-2009
+# (c) E.Bertin 2003-2010
 # Process this file with autoconf to produce a configure script.
 # First, disable the annoying config.cache
 define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(stiff, 1.13, [bertin@iap.fr])
+AC_INIT(stiff, 2.0, [bertin@iap.fr])
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_AUX_DIR(autoconf)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 AM_INIT_AUTOMAKE
 date=`date +%Y-%m-%d`
 date2=`date +"%a %b %d %Y"`
@@ -20,8 +20,10 @@ AC_SUBST(DATE2, "$date2")
 AC_SUBST(DATE3, "$date3")
 
 # Include macros
-#sinclude(acx_pthread.m4)
+sinclude(acx_pthread.m4)
 sinclude(acx_prog_cc_optim.m4)
+sinclude(acx_libtiff.m4)
+sinclude(acx_urbi_resolve_dir.m4)
 
 # Display pakage and version number
 AC_MSG_RESULT([*********** Configuring:  $PACKAGE $VERSION ($date) **********])
@@ -60,7 +62,7 @@ AM_PROG_CC_STDC
 AC_ISC_POSIX
 if test "$use_autoflag" = "yes"; then
   CFLAGS=""
-  LDFLAGS =""
+  LDFLAGS=""
   ACX_PROG_CC_OPTIM
 fi
 AC_PROG_AWK
@@ -72,13 +74,15 @@ AC_CHECK_LIB(m, sin)
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h unistd.h sys/mman.h)
+AC_CHECK_HEADERS(fcntl.h time.h unistd.h sys/mman.h sys/stat.h sys/time.h sys/types.h)
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AC_TYPE_SIGNAL
+AC_TYPE_LONG_LONG_INT
+AC_TYPE_UNSIGNED_LONG_LONG_INT
 AC_TYPE_UID_T
 AC_CHECK_TYPES([unsigned long long, long long])
 
@@ -91,11 +95,53 @@ AC_CHECK_FUNCS([atexit memmove memset munmap strchr strpbrk strrchr strspn strcs
 AC_SYS_LARGEFILE
 AC_FUNC_FSEEKO
 
+datadir2=$(URBI_RESOLVE_DIR([$datadir]))
+
+# Provide a special option for the default XSLT URL
+AC_ARG_WITH(xsl_url,
+	[AC_HELP_STRING([--with-xsl_url=<default URL for XSLT filter>],
+	[Provide an alternative default URL of the XSLT filter])],
+    [xsl_url=$withval],
+    [xsl_url="file://$datadir2/$PACKAGE_NAME/$PACKAGE_NAME.xsl"]
+    )
+
+AC_DEFINE_UNQUOTED([XSL_URL], "$xsl_url",[Default URL of the XSLT filter])
+
+# Set flags for multithreading
+n_pthreads=16
+AC_ARG_ENABLE(threads,
+	[AC_HELP_STRING([--enable-threads@<:@=<max_number_of_threads>@:>@],
+	[Enable multhreading (on with up to 16 threads by default)])],
+    if test "$enableval" = "no"; then
+      use_pthreads="no"
+    else
+      use_pthreads="yes"
+      if test "$enableval" != "yes"; then
+        n_pthreads=$enableval
+      fi
+    fi,
+    use_pthreads=yes
+    )
+
+# Provide special options for libTIFF
+AC_ARG_WITH(tiff-libdir,
+	[AC_HELP_STRING([--with-tiff-libdir=<libTIFF library dir>],
+	[Provide an alternative path to the libTIFF library directory])],
+    libtiff_libdir=$withval,
+    libtiff_libdir=""
+    )
+AC_ARG_WITH(tiff-incdir,
+	[AC_HELP_STRING([--with-tiff-incdir=<libTIFF include dir>],
+	[provide an alternative path to the libTIFF include directory])],
+    libtiff_incdir=$withval,
+    libtiff_incdir=""
+    )
+
 # Provide special option for gprof profiling
 AC_MSG_CHECKING([for gprof profiler mode])
 AC_ARG_ENABLE(gprof,
         [AC_HELP_STRING([--enable-gprof],
-        [Enable special mode for compilation with the gprof profiler \
+        [enable special mode for compilation with the gprof profiler \
 (off by default)])],
         use_gprof="yes"
         AC_MSG_RESULT([yes]),
@@ -106,12 +152,37 @@ AC_ARG_ENABLE(gprof,
 AC_MSG_CHECKING([best linking option])
 AC_ARG_ENABLE(best-link,
 	[AC_HELP_STRING([--enable-best-link],
-	[Choose the right combination of static and dynamic linking to make \
+	[choose the right combination of static and dynamic linking to make \
 the executable as portable as possible (off by default)])],
         use_best="yes"
 	AC_MSG_RESULT([yes]),
         use_best="no"
 	AC_MSG_RESULT([no]))
+
+################# Actions to complete in case of multhreading ################
+AC_DEFINE_UNQUOTED(THREADS_NMAX, $n_pthreads,[Maximum number of POSIX threads])
+if test "$use_pthreads" = "yes"; then
+  AC_MSG_CHECKING([for multithreading])
+  AC_MSG_RESULT([maximum of $n_pthreads thread(s)])
+  AC_DEFINE(USE_THREADS, 1, [Triggers multhreading])
+# CC, CFLAGS and LIBS are system and compiler-dependent
+  ACX_PTHREAD
+  CC="$PTHREAD_CC"
+  [AM_CFLAGS="$AM_CFLAGS $PTHREAD_CFLAGS -D_REENTRANT"]
+  LIBS="$PTHREAD_LIBS $LIBS"
+fi
+AM_CONDITIONAL(USE_THREADS, test $use_pthreads = "yes")
+
+######################## handle the libTIFF library ###########################
+ACX_LIBTIFF($libtiff_libdir,$libtiff_incdir, [use_libtiff=yes],[use_libtiff=no])
+if test "$use_libtiff" = "yes"; then
+  LIBS="$LIBTIFF_LIBS $LIBS"
+  if test "$LIBTIFF_WARN" != ""; then
+    AC_MSG_WARN([$LIBTIFF_WARN])
+  fi
+else
+  AC_MSG_ERROR([$LIBTIFF_ERROR Exiting.])
+fi
 
 # Link with gprof option
 if test "$use_gprof" = "yes"; then

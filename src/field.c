@@ -9,7 +9,7 @@
 *
 *	Contents:	Handle fields (image).
 *
-*	Last modify:	14/11/2004
+*	Last modify:	04/01/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -37,7 +37,7 @@ OUTPUT  A pointer to the created field structure.
 NOTES   Global preferences are used. The function is not reentrant because
 	of static variables (prefs structure members are updated).
 AUTHOR  E. Bertin (IAP)
-VERSION 14/11/2004
+VERSION 04/01/2010
 */
 fieldstruct	*load_field(char *filename)
   {
@@ -81,13 +81,22 @@ fieldstruct	*load_field(char *filename)
   if (tab->naxis<2)
     error(EXIT_FAILURE, "*Error*: no 2D FITS data in ", filename);
 
-/* A short, "relative" version of the filename */
+/*-- Get image dimensions */
+  field->size[0] = tab->naxisn[0];
+  field->size[1] = tab->naxisn[1];
+
+/* A short, "relative" version of the filename (bis) */
   if (!(rfilename = strrchr(field->cat->filename, '/')))
     rfilename = field->cat->filename;
   else
     rfilename++;
 
   field->rfilename = rfilename;
+
+/* Identifier */
+  if (!tab->headbuf || fitsread(tab->headbuf, "OBJECT  ", field->ident,
+	H_STRING,T_STRING)!= RETURN_OK)
+    strcpy(field->ident, "no ident");
 
   return field;
   }
@@ -118,20 +127,17 @@ INPUT	Pointer to the field.
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	28/01/2003
+VERSION	04/01/2010
  ***/
 void	print_fieldinfo(fieldstruct *field)
 
   {
    tabstruct		*tab, *tabo;
-   static char		ident[82], str[82];
+   static char		str[82];
    int			t;
 
   if (!(tab=field->tab))
     return;
-  if (!tab->headbuf || fitsread(tab->headbuf, "OBJECT  ", ident,
-	H_STRING,T_STRING)!= RETURN_OK)
-    strcpy(ident, "no ident");
   if (field->cat->ntab>1)
     {
     if (tab->extname)
@@ -148,7 +154,7 @@ void	print_fieldinfo(fieldstruct *field)
     *str = '\0';
   QPRINTF(OUTPUT, "%s: \"%.20s\" %s %dx%d   %d bits (%s)\n"
 	"Background level: %-10g  Min level: %-10g  Max level: %-10g\n",
-        field->rfilename, ident,
+        field->rfilename, field->ident,
         str,
         tab->naxisn[0], tab->naxisn[1], tab->bytepix*8,
         tab->bitpix>0? (tab->compress_type!=COMPRESS_NONE ?

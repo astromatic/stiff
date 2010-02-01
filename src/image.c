@@ -9,7 +9,7 @@
 *
 *       Contents:       Convert FITS data to 8-bit format
 *
-*       Last modify:    10/01/2005
+*       Last modify:    01/02/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -25,52 +25,75 @@
  
 #include "define.h"
 #include "globals.h"
+#include "datamem.h"
 #include "field.h"
 #include "image.h"
 #include "prefs.h"
 #include "fits/fitscat.h"
 #include "tiff.h"
+#ifdef USE_THREADS
+#include "threads.h"
 
-/****** image_convert *********************************************************
-PROTO	void image_convert(char *filename, fieldstruct **field, PIXTYPE *back,
-			int ncat)
+   void			pthread_cancel_threads(void);
+   static void		*pthread_data_to_pix(void *arg),
+			*pthread_write_lines(void *arg),
+			*pthread_write_tiles(void *arg);
+   pthread_t		*thread, tthread;
+   pthread_mutex_t	tiffmutex;
+   threads_gate_t	*pthread_startgate, *pthread_stopgate,
+			*pthread_startwgate, *pthread_stopwgate;
+
+   fieldstruct		**pthread_field;
+   imagestruct		*pthread_image;
+   OFF_T		pthread_imoffset;
+   float		**pthread_data,
+			**pthread_fsbuf;
+   unsigned char	*pthread_pix;
+   int			*proc,
+			pthread_nbuflines, pthread_bufline, pthread_width,
+			pthread_nchan, pthread_bypp,
+			pthread_nproc, pthread_endflag;
+
+#endif
+
+/****** image_convert_single **************************************************
+PROTO	void image_convert_single(char *filename, fieldstruct **field,int nchan)
 PURPOSE	Read FITS files, rebin, and convert them to TIFF format.
 INPUT	Output filename,
 	array of pointers to the tabstructs of input FITS extensions,
 	number of input FITS files.
-OUTPUT	-..
+OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	09/01/2005
+VERSION	13/01/2010
  ***/
-void	image_convert(char *filename, fieldstruct **field, int ncat)
+void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   {
    imagestruct		*image;
    catstruct		**cat;
    tabstruct		**tab;
-   unsigned char	*buf, *buft;
-   double		invgamma, invgammaf, coloursat, dfpix, dfspix,
-			dncat, fmax,fmax2;
+   unsigned char	*extrapix;
    float		*fbuf[3],
-			fmin[MAXFILE], fscale[MAXFILE], sat_level[3],
-			*fbuft, *fsbuf, *fsbuft, *fbuft2, *fbuft3,
-			min,scale;
+			*fbuft0, *fbuft, *fsbuf;
    PIXTYPE		*ibuf,*ibuft,
 			fpix;
    long			offset;
+   OFF_T		imoffset;
    int			a, x,y, bx,by, width,height, fwidth,fheight,
-			binsize,binsizexmax,binsizeymax,binsizey,
-			negflag, colflag, owidth;
+			binsizex0,binsizey0,binsizexmax,binsizeymax,
+			binsizex,binsizey,
+			owidth, my, flipxflag, flipyflag, dyflag, dy,
+			nlines, ntlines;
 
 /* Start by making a few checks */
-  if (ncat != 1 && ncat != 3)
+  if (nchan != 1 && nchan != 3)
     return;
 
-  QMALLOC(cat, catstruct *, ncat);
-  QMALLOC(tab, tabstruct *, ncat);
+  QMALLOC(cat, catstruct *, nchan);
+  QMALLOC(tab, tabstruct *, nchan);
   fwidth = fheight = 0;
 
-  for (a=0; a<ncat; a++)
+  for (a=0; a<nchan; a++)
     {
     if (!(cat[a]=field[a]->cat))
       return;
@@ -96,158 +119,219 @@ void	image_convert(char *filename, fieldstruct **field, int ncat)
       fheight = tab[a]->naxisn[1];
     }
 
-  binsize = prefs.bin_size;
-  invgammaf = 1.0/prefs.gamma_fac;
-  invgamma = 1.0/prefs.gamma;
-  coloursat = prefs.colour_sat/3.0;
-  colflag = (ncat==3);
-  width = binsize>1? (fwidth+binsize-1)/binsize : fwidth;
-  owidth = width*ncat;
+  flipxflag = (prefs.flip_type == FLIP_X) || (prefs.flip_type == FLIP_XY);
+  flipyflag = (prefs.flip_type == FLIP_Y) || (prefs.flip_type == FLIP_XY);
+  binsizex0 = prefs.bin_size[0];
+  width = binsizex0>1? (fwidth+binsizex0-1)/binsizex0 : fwidth;
+  owidth = width*nchan;
   offset = -2*owidth;
-  height = binsize>1? (fheight+binsize-1)/binsize : fheight;
-
-/* Adjust luminosity and contrast */
-  for (a=0; a<ncat; a++)
-    {
-    fmin[a] = field[a]->min;
-    fscale[a] = pow(255.5, prefs.gamma*prefs.gamma_fac)
-		/ (field[a]->max - fmin[a]);
-    sat_level[a] = fscale[a]*(prefs.sat_val[a] - fmin[a]);
-    }
+  binsizey0 = prefs.bin_size[1];
+  height = binsizey0>1? (fheight+binsizey0-1)/binsizey0 : fheight;
 
 /* Create the output header file and prepare things */
-  switch(prefs.format_type)
+  switch(prefs.format_type2)
     {
     case FORMAT_TIFF:
-      image = create_tiff(filename, width, height, ncat);
+      image = create_tiff(filename, width, height, nchan, prefs.bpp, 0,
+		prefs.bigtiff_type,
+		prefs.compress_type, prefs.compress_quality,
+		prefs.copyright, prefs.description);
      break;
    default:
      image = NULL; /* To avoid gcc -Wall warnings */
      error(EXIT_FAILURE, "This should not happen!", "");
-     }
+   }
 
-  if (!(binsizexmax = fwidth%binsize))
-    binsizexmax = binsize;
-  if (!(binsizeymax = fheight%binsize))
-    binsizeymax = binsize;
-  QCALLOC(ibuf, PIXTYPE, binsize*width);
-  for (a=0; a<ncat; a++)
+  if (!(binsizexmax = fwidth%binsizex0))
+    binsizexmax = binsizex0;
+  if (!(binsizeymax = fheight%binsizey0))
+    binsizeymax = binsizey0;
+  QCALLOC(ibuf, PIXTYPE, fwidth);
+  nlines = image->nlines;
+  for (a=0; a<nchan; a++)
     {
-    QMALLOC(fbuf[a], float, width);
+    QMALLOC(fbuf[a], float, width*nlines);
     }
-  QMALLOC(fsbuf, float, width);
-  QCALLOC(buf, unsigned char, owidth);
+
+#ifdef USE_THREADS
+   static pthread_attr_t	pthread_attr;
+   int				p, nproc;
+
+/* Number of active threads */
+  nproc = prefs.nthreads;
+  if (nproc>1)
+    nproc--;		/* Leave one proc free for non-blocking TIFF I/O's */
+  pthread_nproc = nproc;
+/* Set up multi-threading stuff */
+  QPTHREAD_MUTEX_INIT(&tiffmutex, NULL);
+  QPTHREAD_ATTR_INIT(&pthread_attr);
+  QPTHREAD_ATTR_SETDETACHSTATE(&pthread_attr, PTHREAD_CREATE_JOINABLE);
+  pthread_startgate = threads_gate_init(nproc+1, NULL);
+  pthread_startwgate = threads_gate_init(2, NULL);
+  pthread_stopgate = threads_gate_init(nproc+1, NULL);
+  pthread_stopwgate = threads_gate_init(2, NULL);
+  QMALLOC(proc, int, nproc);
+  QMALLOC(pthread_fsbuf, float *, nproc);
+  QMALLOC(thread, pthread_t, nproc);
+  QMALLOC(fsbuf, float, width*nproc);
+  QMALLOC(extrapix, unsigned char, width*nlines*image->bypp*image->nchan);
+  pthread_field = field;
+  pthread_image = image;
+  pthread_data = fbuf;
+  pthread_pix = extrapix;
+  pthread_width = width;
+  pthread_nchan = nchan;
+  pthread_bypp = image->bypp;
+  pthread_endflag = 0;
+/* Install the signal-catching routines for temporary file cleanup */
+  install_cleanup(pthread_cancel_threads);
+/* Start the data conversion / tiling threads */
+  for (p=0; p<nproc; p++)
+    {
+    proc[p] = p;
+    pthread_fsbuf[p] = &fsbuf[p*pthread_width];
+    QPTHREAD_CREATE(&thread[p], &pthread_attr, &pthread_data_to_pix, &proc[p]);
+    }
+  p = 0;
+  QPTHREAD_CREATE(&tthread, &pthread_attr, &pthread_write_lines, &p);
+#else
+  QMALLOC(fsbuf, float, width*nlines);
+/* Install the signal-catching routines for temporary file cleanup */
+  install_cleanup(NULL);
+#endif
 
 /* Position the input file(s) at the beginning of image */
-  for (a=0; a<ncat; a++)
+  for (a=0; a<nchan; a++)
     QFSEEK(cat[a]->file, tab[a]->bodypos, SEEK_SET, cat[a]->filename);
 
 /* Prepare the output file and position the pointer at the last line */
 /* We are going reverse (1st pixel is at top in TIFF, and at bottom in FITS) */
-  for (y=height; y--;)
-    write_tiff(image, buf, owidth);
-  QFSEEK(image->file, offset/2, SEEK_CUR, image->filename);
 
 /* OK now we are ready to go! */
-  fbuft2 = fbuft3 = NULL; /* To avoid gcc -Wall warnings */
-  negflag = prefs.neg_flag;
-  dncat = (double)ncat;
+  my = fheight;
+  ntlines = nlines;
   for (y=0; y<height; y++)
     {
-    if (!y || !((y+1)%16))
+    if (!y || !((y+1)%100))
       NPRINTF(OUTPUT, "\33[1M> Converting line:%7d / %-7d\n\33[1A",
         y+1, height);
-    binsizey = ((y+1)<height? binsize:binsizeymax);
-    memset(fsbuf, 0, width*sizeof(float));
-    for (a=0; a<ncat; a++)
+    binsizey = ((y+1)<height? binsizey0:binsizeymax);
+    my -= binsizey;
+    dy = y%nlines;
+    if (!dy)
       {
-      memset(fbuf[a], 0, width*sizeof(float));
+      if (ntlines > height - y)
+        ntlines = height - y;
+#ifdef USE_THREADS
+      memset(fsbuf, 0, width*nproc*sizeof(float));
+#else
+      memset(fsbuf, 0, width*nlines*sizeof(float));
+#endif
+      }
+    dyflag = (dy == ntlines - 1);
+    for (a=0; a<nchan; a++)
+      {
+      fbuft0 = fbuf[a] + dy*width;
+      if (!flipyflag)
+        {
+        imoffset = tab[a]->bodypos+(OFF_T)fwidth*my*tab[a]->bytepix;
+        QFSEEK(cat[a]->file, imoffset, SEEK_SET, cat[a]->filename);
+        }
+      if (!dy)
+        memset(fbuft0, 0, width*ntlines*sizeof(float));
 /*---- Bin the pixels */
       for (by=binsizey; by--;)
         {
         read_body(tab[a], ibuf, fwidth);
         ibuft = ibuf;
-        fbuft = fbuf[a];
-        for (x=width; x--;)
-	  {
-          fpix = 0;
-          for (bx=binsize; bx--;)
-            fpix += *(ibuft++);
-          *(fbuft++) += fpix/(x>0? binsize:binsizexmax);
-	  }
-        }
-/*---- Sum the fluxes from the different channels */
-      min = fmin[a];
-      scale = fscale[a];
-      fsbuft = fsbuf;
-      fbuft = fbuf[a];
-      for (x=width; x--;)
-        {
-        if ((fpix = scale*(*fbuft/binsizey - min))<0.0)
-          fpix = 0.0;
-        *(fsbuft++) += (*(fbuft++) = fpix)/dncat;
+        if (flipxflag)
+          {
+          fbuft = fbuft0 + width;
+          for (x=width; x--;)
+	    {
+            fpix = 0;
+            binsizex = x>0? binsizex0:binsizexmax;
+            for (bx=binsizex; bx--;)
+              fpix += *(ibuft++);
+            *(--fbuft) += fpix / (binsizex*binsizey);
+	    }
+          }
+        else
+          {
+          fbuft = fbuft0;
+          for (x=width; x--;)
+	    {
+            fpix = 0;
+            binsizex = x>0? binsizex0:binsizexmax;
+            for (bx=binsizex; bx--;)
+              fpix += *(ibuft++);
+            *(fbuft++) += fpix / (binsizex*binsizey);
+	    }
+          }
         }
       }
-
-    fmax = pow(255.5, prefs.gamma);
-
-    fsbuft = fsbuf;
-    buft = buf;
-    for (x=0; x<width; x++)
+    if (dyflag)
       {
-      dfspix = *(fsbuft++);
-      for (a=0; a<ncat; a++)
+#ifdef USE_THREADS
+      pthread_bufline = 0;
+      pthread_nbuflines = ntlines;
+      threads_gate_sync(pthread_startgate);
+/*---- ( Slave threads process the current buffer data here ) */
+      threads_gate_sync(pthread_stopgate);
+      if (y != ntlines-1)
+        threads_gate_sync(pthread_stopwgate);
+      image->y = y-ntlines+1;
+      image->nlines = ntlines;
+      memcpy(image->buf, extrapix, width*ntlines*image->bypp*nchan);
+      threads_gate_sync(pthread_startwgate);
+/*---- ( Writing thread starts processing the current buffer data here ) */
+#else
+      data_to_pix(field, fbuf, 0, image->buf, width*ntlines, nchan, image->bypp,
+		fsbuf);
+      switch(prefs.format_type2)
         {
-        dfpix = fbuf[a][x];
-        fmax2 = fmax*pow(dfspix, 1.0 - invgammaf);
-        if (dfpix >= fmax2)
-          fbuf[a][x] = fmax2;
+        case FORMAT_TIFF:
+          write_tifflines(image);
+          break;
+        default:
+          error(EXIT_FAILURE, "This should not happen!", "");
         }
-
-      for (a=0; a<ncat; a++)
-        {
-        dfpix = fbuf[a][x];
-        if (colflag)
-          {
-          fbuft2 = fbuf[(a+1)%3];
-          fbuft3 = fbuf[(a+2)%3];
-          dfpix = dfspix + coloursat*(2.0*dfpix
-			- fbuf[(a+1)%3][x] - fbuf[(a+2)%3][x]);
-          }
-        dfpix = (colflag && dfspix > 1e-15)? dfpix/dfspix : 1.0;
-        dfpix *= pow(dfspix, invgammaf);
-/*------ Video gamma correction */
-        dfpix = pow((double)dfpix, invgamma)+0.5;
-        if (dfpix>=255.5)
-          dfpix = 255.5;
-        if (negflag)
-          dfpix = 255.5 - dfpix;
-        *(buft++) = (unsigned char)dfpix;
-        }
+#endif
       }
-    switch(prefs.format_type)
-      {
-      case FORMAT_TIFF:
-        if (y)
-          {
-          QFSEEK(image->file, offset, SEEK_CUR, image->filename);
-          }
-        write_tiff(image, buf, owidth);
-      break;
-     default:
-       error(EXIT_FAILURE, "This should not happen!", "");
-     }
     }
+
+#ifdef USE_THREADS
+    threads_gate_sync(pthread_stopwgate);
+
+/* Clean up multi-threading stuff */
+  pthread_endflag = 1;
+/* (Re-)activate existing threads... */
+  threads_gate_sync(pthread_startgate);
+  threads_gate_sync(pthread_startwgate);
+/* ... and shutdown all threads */
+  for (p=0; p<nproc; p++)
+    QPTHREAD_JOIN(thread[p], NULL);
+  QPTHREAD_JOIN(tthread, NULL);
+  threads_gate_end(pthread_startgate);
+  threads_gate_end(pthread_startwgate);
+  threads_gate_end(pthread_stopgate);
+  threads_gate_end(pthread_stopwgate);
+  QPTHREAD_MUTEX_DESTROY(&tiffmutex);
+  QPTHREAD_ATTR_DESTROY(&pthread_attr);
+  free(pthread_fsbuf);
+  free(extrapix);
+  free(proc);
+  free(thread);
+#endif
 
 /* Close file and free memory */
   free(ibuf);
-  for (a=0; a<ncat; a++)
+  for (a=0; a<nchan; a++)
     free(fbuf[a]);
   free(fsbuf);
-  free(buf);
   free(cat);
   free(tab);
-  switch(prefs.format_type)
+  switch(prefs.format_type2)
     {
     case FORMAT_TIFF:
       end_tiff(image);
@@ -259,6 +343,657 @@ void	image_convert(char *filename, fieldstruct **field, int ncat)
   return;
   }
 
+
+/****** image_convert_pyramid *************************************************
+PROTO	int image_pyramid(char *filename, fieldstruct **field, int nchan)
+PURPOSE	Read FITS files and rebin to generate a pyramid of image resolutions.
+INPUT	File name,
+	array of pointers to the tabstructs of input FITS extensions,
+	number of input FITS files.
+OUTPUT	Number of pyramid levels.
+NOTES	Uses the global preferences.
+AUTHOR	E. Bertin (IAP)
+VERSION	13/01/2010
+ ***/
+int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
+  {
+   imagestruct		*image;
+   catstruct		**cat;
+   tabstruct		**tab;
+   float		*data[3],
+			*datat,*datatt, *datao, *fbuf, *fbuft, *fsbuf,
+			fpix, fac;
+   OFF_T		imoffset;
+   size_t		ndata,ndatao;
+   unsigned char	*pix;
+   char			*swapname[3],
+			*swapnameo;
+   int			a,i,l, w,h, x,y,my,ny,bx,by, nlevels, width,height,
+			fwidth,fheight, binsizex0,binsizey0, binsizex,binsizey,
+			binsizexmax,binsizeymax, minsizex, minsizey,
+			tilesize,tilesizey, flipxflag, flipyflag, bypp;
+
+/* Start by making a few checks */
+  if (nchan != 1 && nchan != 3)
+    return 0;
+
+  swapnameo = NULL;	/* to avoid gcc -Wall warnings */
+  ndatao = ndata = 0;
+  fbuft = datao = NULL;
+  image = NULL;
+  QMALLOC(cat, catstruct *, nchan);
+  QMALLOC(tab, tabstruct *, nchan);
+  fwidth = fheight = 0;
+  for (a=0; a<nchan; a++)
+    {
+    swapname[a] = NULL;
+    if (!(cat[a]=field[a]->cat))
+      error(EXIT_FAILURE, "*Internal error* with ", cat[a]->filename);
+    if (!(tab[a]=field[a]->tab))
+      error(EXIT_FAILURE, "*Internal error* with ", cat[a]->filename);
+    if (tab[a]->naxis<2)
+      error(EXIT_FAILURE, "*Error*: not a 2D image in ", cat[a]->filename);
+    if (fwidth)
+      {
+      if (tab[a]->naxisn[0] != fwidth)
+        error(EXIT_FAILURE, "*Error*: Image width doesn't match in ",
+		cat[a]->filename);
+      }
+    else
+      fwidth = tab[a]->naxisn[0];
+    if (fheight)
+      {
+      if (tab[a]->naxisn[1] != fheight)
+        error(EXIT_FAILURE, "*Error*: Image height doesn't match in ",
+		cat[a]->filename);
+      }
+    else
+      fheight = tab[a]->naxisn[1];
+    QFSEEK(cat[a]->file, tab[a]->bodypos, SEEK_SET, cat[a]->filename);
+    }
+
+  set_maxdataram(prefs.mem_max);
+  set_maxdatavram(prefs.vmem_max);
+  set_dataswapdir(prefs.swapdir_name);
+
+
+/* Compute the number of pyramid levels */
+  flipxflag = (prefs.flip_type == FLIP_X) || (prefs.flip_type == FLIP_XY);
+  flipyflag = (prefs.flip_type == FLIP_Y) || (prefs.flip_type == FLIP_XY);
+  binsizex0 = prefs.bin_size[0];
+  minsizex = prefs.min_size[0];
+  minsizey = prefs.min_size[1];
+  tilesize = prefs.tile_size;
+  w = width = binsizex0>1? (fwidth+binsizex0-1)/binsizex0 : fwidth;
+  binsizey0 = prefs.bin_size[1];
+  h = height = binsizey0>1? (fheight+binsizey0-1)/binsizey0 : fheight;
+  QMALLOC(fbuf, PIXTYPE, fwidth);
+  image = create_tiff(filename, width, height, nchan, prefs.bpp, tilesize,
+	prefs.bigtiff_type, prefs.compress_type, prefs.compress_quality,
+	prefs.copyright, prefs.description);
+  bypp = image->bypp;
+
+#ifdef USE_THREADS
+   static pthread_attr_t	pthread_attr;
+   int				p, nproc;
+/* Number of active threads */
+  nproc = prefs.nthreads;
+  if (nproc>1)
+    nproc--;		/* Leave one proc free for non-blocking TIFF I/O's */
+  pthread_nproc = nproc;
+/* Set up multi-threading stuff */
+  QPTHREAD_MUTEX_INIT(&tiffmutex, NULL);
+  QPTHREAD_ATTR_INIT(&pthread_attr);
+  QPTHREAD_ATTR_SETDETACHSTATE(&pthread_attr, PTHREAD_CREATE_JOINABLE);
+  pthread_startgate = threads_gate_init(nproc+1, NULL);
+  pthread_startwgate = threads_gate_init(2, NULL);
+  pthread_stopgate = threads_gate_init(nproc+1, NULL);
+  pthread_stopwgate = threads_gate_init(2, NULL);
+  QMALLOC(proc, int, nproc);
+  QMALLOC(pthread_fsbuf, float *, nproc);
+  QMALLOC(thread, pthread_t, nproc);
+  pthread_field = field;
+  pthread_image = image;
+  pthread_data = data;
+  pthread_nchan = nchan;
+  pthread_bypp = bypp;
+  pthread_endflag = 0;
+/* Install the signal-catching routines for temporary file cleanup */
+  install_cleanup(pthread_cancel_threads);
+/* Start the data conversion / tiling threads */
+  for (p=0; p<nproc; p++)
+    {
+    proc[p] = p;
+    QPTHREAD_CREATE(&thread[p], &pthread_attr, &pthread_data_to_pix, &proc[p]);
+    }
+  p = 0;
+  QPTHREAD_CREATE(&tthread, &pthread_attr, &pthread_write_tiles, &p);
+#else
+ install_cleanup(NULL);
+#endif
+
+  for (nlevels = 1; (w/=2)>=minsizex && (h/=2)>=minsizey ; nlevels++);
+  for (l=1; l<=nlevels; l++)
+    {
+    if (l>1)
+      {
+      binsizex0 = binsizey0 = 2;
+      fwidth = width;
+      fheight = height;
+      width = fwidth/binsizex0;
+      height = fheight/binsizey0;
+      ndatao = ndata;
+      create_tiffdir(image, width, height, nchan, prefs.bpp, tilesize,
+		prefs.compress_type, prefs.compress_quality,
+		prefs.copyright, prefs.description);
+      }
+
+    if (!(binsizexmax = fwidth%binsizex0))
+      binsizexmax = binsizex0;
+    if (!(binsizeymax = fheight%binsizey0))
+      binsizeymax = binsizey0;
+
+    width = binsizex0>1? (fwidth+binsizex0-1)/binsizex0 : fwidth;
+    height = binsizey0>1? (fheight+binsizey0-1)/binsizey0 : fheight;
+    ndata = (size_t)width*(size_t)height;
+
+    for (a=0; a<nchan; a++)
+      {
+      my = fheight;
+      if (l>1)
+        {
+        fbuft = datao = data[a];
+        swapnameo = swapname[a];
+        }
+      datat = data[a] = alloc_data(ndata, &swapname[a]);
+      if (!datat)
+        error(EXIT_FAILURE, "*Error*: not enough (virtual) memory for loading ",
+		field[a]->rfilename);
+
+      for (y=0; y<height; y++)
+        {
+        if (!y || !((y+1)%100))
+        NPRINTF(OUTPUT,
+		"\33[1M> Channel %1d/%-1d: Pyramid level %2d/%-2d: "
+		"Reducing line %7d/%-7d\n\33[1A",
+		a+1, nchan, l, nlevels, y+1, height);
+        binsizey = ((y+1)<height? binsizey0:binsizeymax);
+        my -= binsizey;
+        if (!flipyflag && l==1)
+          {
+          imoffset = tab[a]->bodypos+(OFF_T)fwidth*my*tab[a]->bytepix;
+          QFSEEK(cat[a]->file, imoffset, SEEK_SET, cat[a]->filename);
+          }
+        memset(datat, 0, width*sizeof(float));
+/*------ Bin the pixels */
+        for (by=binsizey; by--;)
+          {
+          if (l==1)
+            {
+            read_body(tab[a], fbuf, fwidth);
+            fbuft = fbuf;
+            }
+          if (flipxflag && l==1)
+            {
+            datatt = datat + width;
+            for (x=width; x--;)
+              {
+              fpix = 0;
+              binsizex = x>0? binsizex0:binsizexmax;
+              fac = 1.0/(binsizex*binsizey);
+              for (bx=binsizex; bx--;)
+                fpix += *(fbuft++);
+              *(--datatt) += fac*fpix;
+	      }
+            }
+          else
+            {
+            datatt = datat;
+            for (x=width; x--;)
+              {
+              fpix = 0;
+              binsizex = x>0? binsizex0:binsizexmax;
+              fac = 1.0/(binsizex*binsizey);
+              for (bx=binsizex; bx--;)
+                fpix += *(fbuft++);
+              *(datatt++) += fac*fpix;
+	      }
+            }
+          }
+        datat += width;
+        }
+      if (l>1)
+        free_data(datao, ndatao, swapnameo);
+      }
+
+    ny = image->ntilesy;
+    QMALLOC(pix, unsigned char, tilesize*width*nchan*bypp);
+    tilesizey = tilesize;
+    imoffset = 0;
+#ifdef USE_THREADS
+    pthread_pix = pix;
+    pthread_width = width;
+    pthread_nbuflines = tilesizey;
+/*-- Try to increase the number of pixels per threads */
+    for (i=8; i--;)
+      if (!(tilesize%i))
+        {
+        pthread_width *= i;
+        pthread_nbuflines /= i;
+        break;
+        }
+    QMALLOC(fsbuf, float, nproc*pthread_width);
+    for (p=0; p<nproc; p++)
+      pthread_fsbuf[p] = &fsbuf[p*pthread_width];
+#else
+    QMALLOC(fsbuf, float, tilesize*width);
+#endif
+    for (y=0; y<ny; y++)
+      {
+      NPRINTF(OUTPUT,
+		"\33[1M> Pyramid level %2d/%-2d: "
+		"Converting and tiling row %3d/%-3d\n\33[1A",
+		l, nlevels, y+1, ny);
+      if (y==ny-1)
+        {
+        tilesizey = height - y*tilesize;
+#ifdef USE_THREADS
+        pthread_width = width;
+        pthread_nbuflines = tilesizey;
+#endif
+        }
+#ifdef USE_THREADS
+      pthread_bufline = 0;
+      pthread_imoffset = imoffset;
+      threads_gate_sync(pthread_startgate);
+/*---- ( Slave threads process the current buffer data here ) */
+      threads_gate_sync(pthread_stopgate);
+      if (y)
+        threads_gate_sync(pthread_stopwgate);
+      raster_to_tiles(pix, image->buf, width, tilesizey, tilesize, nchan*bypp);
+      image->tiley = y;
+      threads_gate_sync(pthread_startwgate);
+/*---- ( Writing thread starts processing the current buffer data here ) */
+#else
+      data_to_pix(field, data, imoffset, pix, tilesizey*width,nchan,bypp,fsbuf);
+      raster_to_tiles(pix, image->buf, width, tilesizey, tilesize, nchan*bypp);
+      write_tifftiles(image);
+#endif
+      imoffset += tilesize*width;
+      }
+#ifdef USE_THREADS
+    threads_gate_sync(pthread_stopwgate);
+#endif
+    free(fsbuf);
+    free(pix);
+    }
+
+/* Close file and free memory */
+  end_tiff(image);
+  free(fbuf);
+
+#ifdef USE_THREADS
+/* Clean up multi-threading stuff */
+  pthread_endflag = 1;
+/* (Re-)activate existing threads... */
+  threads_gate_sync(pthread_startgate);
+  threads_gate_sync(pthread_startwgate);
+/* ... and shutdown all threads */
+  for (p=0; p<nproc; p++)
+    QPTHREAD_JOIN(thread[p], NULL);
+  QPTHREAD_JOIN(tthread, NULL);
+  threads_gate_end(pthread_startgate);
+  threads_gate_end(pthread_startwgate);
+  threads_gate_end(pthread_stopgate);
+  threads_gate_end(pthread_stopwgate);
+  QPTHREAD_MUTEX_DESTROY(&tiffmutex);
+  QPTHREAD_ATTR_DESTROY(&pthread_attr);
+  free(pthread_fsbuf);
+  free(proc);
+  free(thread);
+#endif
+
+  for (a=0; a<nchan; a++)
+    free_data(data[a], ndata, swapname[a]);
+  cleanup_files();
+  free(cat);
+  free(tab);
+
+  return nlevels;
+  }
+
+
+/****** data_to_pix ***********************************************************
+PROTO	void data_to_pix(fieldstruct **field, float **data,
+		unsigned char *outpix, int npix, int nchan, int bypp,
+		float *buffer)
+PURPOSE	Read an array of data and convert it to colour pixel values.
+INPUT	Array of field pointers,
+	array of data pointers,
+	offset to data pointers,
+	array of pixels,
+	number of pixels,
+	number of channels,
+	number of bytes per output channel,
+	luminance buffer.
+OUTPUT	-..
+NOTES	Uses the global preferences.
+AUTHOR	E. Bertin (IAP)
+VERSION	01/02/2010
+ ***/
+void	data_to_pix(fieldstruct **field, float **data, size_t offset,
+		unsigned char *outpix, int npix, int nchan, int bypp,
+		float *buffer)
+  {
+   float		*datap[3],
+			dataval[3], fmin[3], scale[3],
+			*buffert, *datat,
+			invgammaf, coloursat, fac, sc, fm, fpix,fspix,
+			fmax, pmax, pblack,pwhite,pscale,
+			invg,goff,gsum,glin,gthresh;
+   unsigned short	*outspixt;
+   unsigned char	*outbpixt;
+   int			a,p, colflag, negflag, sflag;
+
+  colflag = (nchan==3);
+  coloursat = prefs.colour_sat/3.0;
+
+/* Adjust luminosity and contrast and sum fluxes from the different channels */
+  fac = 1.0/nchan;
+  sflag = (bypp>1);
+  invgammaf = 1.0/prefs.gamma_fac;
+
+  memset(buffer, 0, npix*sizeof(float));
+
+  switch(prefs.gamma_type)
+    {
+    case GAMMA_POWERLAW:
+      pmax = (1<<(bypp*8)) - 1.0;
+      pblack = 0.0;
+      pwhite = pmax;		/* Full swing */
+      invg = 1/prefs.gamma;
+      goff = 0.0;
+      gsum = 1.0;
+      glin = 0.0;
+      gthresh = 0.0;
+      break;
+    case GAMMA_SRGB:
+      pmax = (1<<(bypp*8)) - 1.0;
+      pblack = 0.0;
+      pwhite = pmax;		/* Full swing */
+      invg = 1/2.4;
+      goff = 0.055;
+      gsum = 1.0 + goff;
+      glin = 12.92;
+      gthresh = 0.0030402;
+      break;
+    case GAMMA_REC709:
+      pmax = (1<<(bypp*8)) - 2.0;
+      pblack = 0.063*pmax;
+      pwhite = 0.925*pmax;	/* Studio-swing */
+      invg = 1/2.222;
+      goff = 0.099;
+      gsum = 1.0 + goff;
+      glin = 4.5;
+      gthresh = 0.018;
+      break;
+    default:
+/*---- Avoid gcc -Wall warnings */
+      pmax = 0.0;
+      pblack = 0.0;
+      pwhite = pmax;
+      invg = 1.0;
+      goff = 0.0;
+      gsum = 1.0;
+      glin = 0.0;
+      gthresh = 0.0;
+      error(EXIT_FAILURE, "*Internal Error*: unknown gamma correction in ",
+	"data_to_pix()");
+    }
+
+  pscale = (pwhite-pblack);
+  pblack += 0.5;	/* for symmetric round-off */
+
+  for (a=0; a<nchan; a++)
+    {
+    fm = fmin[a] = field[a]->min;
+    sc = scale[a] = 1.0/(field[a]->max-fm);
+    datat = datap[a] = data[a]+offset;
+    buffert = buffer;
+    for (p=npix; p--;)
+      {
+      if ((fpix = sc*(*(datat++) - fm)) < 0.0)
+        fpix = 0.0;
+      *(buffert++) += fpix*fac;
+      }
+    }
+
+  buffert = buffer;
+  if (sflag)
+    {
+    outbpixt = NULL;	/* Avoid gcc -Wall warnings */
+    outspixt = (unsigned short *)outpix;
+    }
+  else
+    {
+    outbpixt = outpix;
+    outspixt = NULL;	/* Avoid gcc -Wall warnings */
+    }
+  negflag = prefs.neg_flag;
+  for (p=0; p<npix; p++)
+    {
+    fspix = *(buffert++);
+    fmax = powf(fspix, 1.0 - invgammaf);
+    for (a=0; a<nchan; a++)
+      if ((dataval[a] = scale[a]*(datap[a][p]-fmin[a])) >= fmax)
+        dataval[a] = fmax;
+
+    for (a=0; a<nchan; a++)
+      {
+      fpix = dataval[a];
+      if (colflag)
+        {
+        fpix = fspix + coloursat*(2.0*fpix-dataval[(a+1)%3]-dataval[(a+2)%3]);
+        if (fpix<0.0)
+          fpix = 0.0;
+        }
+      fpix = (colflag && fspix > 1e-15)? fpix/fspix : 1.0;
+      fpix *= powf(fspix, invgammaf);
+ /*---- Video gamma correction */
+      fpix = pscale*(fpix<gthresh? glin*fpix : gsum *powf(fpix, invg)-goff) + pblack;
+      if (fpix>=pmax)
+        fpix = pmax;
+      if (negflag)
+        fpix = pmax - fpix;
+      if (sflag)
+        *(outspixt++) = (unsigned short)fpix;
+      else
+        *(outbpixt++) = (unsigned char)fpix;
+      }
+    }
+
+  return;
+  }
+
+
+/****** raster_to_tiles *******************************************************
+PROTO	int raster_to_tiles(unsigned char *inpix, unsigned char *outpix,
+			int width, int tilesize, int nchan, int bypp)
+PURPOSE	Read an array of colour pixel values and re-organize it as tiles.
+INPUT	Input array of pixels,
+	Output array of pixels,
+	raster width,
+	actual tile height,
+	tile size,
+	number of channels,
+	number of bytes per channel.
+OUTPUT	Number of tiles along the x axis.
+NOTES	-.
+AUTHOR	E. Bertin (IAP)
+VERSION	01/02/2010
+ ***/
+int raster_to_tiles(unsigned char *inpix, unsigned char *outpix,
+			int width, int tilesizey, int tilesize, int nbytes)
+  {
+   unsigned char	*inpixt,*outpixt;
+   int			x,y, nx, tilesizex,tilesizef;
+
+  nx = (width+tilesize-1)/tilesize;
+/* Everything is multiplied by the number of channels */
+  width *= nbytes;
+  tilesizex = tilesizef = tilesize*nbytes;
+  if (tilesizey != tilesize)
+    memset(outpix, 0, tilesize*width);
+  for (x=0; x<nx; x++)
+    {
+    inpixt = inpix+x*tilesizef;
+    outpixt = outpix+x*tilesizef*tilesize;
+    if (x==nx-1)
+      {
+      tilesizex = width - x*tilesizex;
+      if (tilesizex != tilesizef)
+        memset(outpixt, 0, tilesizef);
+      }
+    for (y=tilesizey; y--; inpixt += width, outpixt += tilesizef)
+      memcpy(outpixt, inpixt, tilesizex);
+    }
+
+  return nx;
+  }
+
+
+#ifdef USE_THREADS
+
+/****** pthread_data_to_pix ***************************************************
+PROTO   void *pthread_data_to_pix(void *arg)
+PURPOSE thread that takes care of converting FITS pixels to TIFF pixels.
+INPUT   Pointer to the thread number.
+OUTPUT  -.
+NOTES   -.
+AUTHOR  E. Bertin (IAP)
+VERSION 02/01/2010
+ ***/
+void    *pthread_data_to_pix(void *arg)
+  {
+   int  bufline, proc;
+
+  bufline = -1;
+  proc = *((int *)arg);
+  threads_gate_sync(pthread_startgate);
+  while (!pthread_endflag)
+    {
+    QPTHREAD_MUTEX_LOCK(&tiffmutex);
+    if (pthread_bufline<pthread_nbuflines)
+      {
+      bufline = pthread_bufline++;
+      QPTHREAD_MUTEX_UNLOCK(&tiffmutex);
+      data_to_pix(pthread_field,
+		pthread_data,
+		pthread_imoffset+bufline*pthread_width,
+		pthread_pix+bufline*pthread_width*pthread_nchan*pthread_bypp,
+		pthread_width,
+		pthread_nchan,
+		pthread_bypp,
+		pthread_fsbuf[proc]);
+      }
+    else
+      {
+      QPTHREAD_MUTEX_UNLOCK(&tiffmutex);
+/*---- Wait for the input buffer to be updated */
+      threads_gate_sync(pthread_stopgate);
+/* ( Master thread process loads and saves new data here ) */
+      threads_gate_sync(pthread_startgate);
+      }
+    }
+
+  pthread_exit(NULL);
+
+  return (void *)NULL;
+  }
+
+
+/****** pthread_write_lines ***************************************************
+PROTO   void *pthread_write_lines(void *arg)
+PURPOSE thread that takes care of writing TIFF lines (non-blocking).
+INPUT   Pointer to the thread number.
+OUTPUT  -.
+NOTES   -.
+AUTHOR  E. Bertin (IAP)
+VERSION 04/01/2010
+ ***/
+void    *pthread_write_lines(void *arg)
+  {
+   int  bufline, proc;
+
+  bufline = -1;
+  proc = *((int *)arg);
+  threads_gate_sync(pthread_startwgate);
+  while (!pthread_endflag)
+    {
+    write_tifflines(pthread_image);
+/*-- Wait for the input buffer to be updated */
+    threads_gate_sync(pthread_stopwgate);
+/*-- ( Master thread process loads and saves new data here ) */
+    threads_gate_sync(pthread_startwgate);
+    }
+
+  pthread_exit(NULL);
+
+  return (void *)NULL;
+  }
+
+
+/****** pthread_write_tiles ***************************************************
+PROTO   void *pthread_write_tiles(void *arg)
+PURPOSE thread that takes care of writing TIFF tiles (non-blocking).
+INPUT   Pointer to the thread number.
+OUTPUT  -.
+NOTES   -.
+AUTHOR  E. Bertin (IAP)
+VERSION 03/01/2010
+ ***/
+void    *pthread_write_tiles(void *arg)
+  {
+   int  bufline, proc;
+
+  bufline = -1;
+  proc = *((int *)arg);
+  threads_gate_sync(pthread_startwgate);
+  while (!pthread_endflag)
+    {
+    write_tifftiles(pthread_image);
+/*-- Wait for the input buffer to be updated */
+    threads_gate_sync(pthread_stopwgate);
+/*-- ( Master thread process loads and saves new data here ) */
+    threads_gate_sync(pthread_startwgate);
+    }
+
+  pthread_exit(NULL);
+
+  return (void *)NULL;
+  }
+
+/****** pthread_cancel ********************************************************
+PROTO	void pthread_cancel_threads(void)
+PURPOSE	Cancel remaining active threads
+INPUT   -.
+OUTPUT  -.
+NOTES   -.
+AUTHOR  E. Bertin (IAP)
+VERSION 04/01/2010
+ ***/
+void    pthread_cancel_threads(void)
+  {
+   int  p;
+
+  for (p=0; p<pthread_nproc; p++)
+    QPTHREAD_CANCEL(thread[p]);
+    QPTHREAD_CANCEL(tthread);
+
+  return;
+  }
+
+#endif
 
 /****** make_imastats *********************************************************
 PROTO	void make_imastats(fieldstruct *field,

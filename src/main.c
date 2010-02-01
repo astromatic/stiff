@@ -9,7 +9,7 @@
 *
 *	Contents:	Parsing of the command line.
 *
-*	Last modify:	10/07/2007
+*	Last modify:	01/01/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -22,6 +22,7 @@
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<string.h>
+#include	<tiffio.h>
 
 #include	"define.h"
 #include	"globals.h"
@@ -40,7 +41,8 @@ extern const char	notokstr[];
 int	main(int argc, char *argv[])
 
   {
-   static char	prefsname[MAXCHAR];
+   double	tdiff, lines,mpix;
+   float	ver;
    char		**argkey, **argval, *str;
    int		a, narg, nim, opt,opt2;
 
@@ -49,15 +51,21 @@ int	main(int argc, char *argv[])
     fprintf(OUTPUT, "\n         %s  version %s (%s)\n", BANNER,MYVERSION,DATE);
     fprintf(OUTPUT, "\nby %s\n", COPYRIGHT);
     fprintf(OUTPUT, "visit %s\n", WEBSITE);
+    if ((ver=atof(TIFFGetVersion() + 16)) >= 4.0)
+      fprintf(OUTPUT, "\nBigTIFF support is: ON (libTIFF V%3.1f)\n", ver);
+    else
+      fprintf(OUTPUT, "\nBigTIFF support is: OFF (libTIFF V%3.1f)\n", ver);
     error(EXIT_SUCCESS, "SYNTAX: ", SYNTAX);
     }
   QMALLOC(argkey, char *, argc);
   QMALLOC(argval, char *, argc);
 
 /*default parameters */
+  prefs.command_line = argv;
+  prefs.ncommand_line = argc;
   prefs.nfile = 1;
   prefs.file_name[0] = "image";
-  strcpy(prefsname, "stiff.conf");
+  strcpy(prefs.prefs_name, "stiff.conf");
   narg = nim = 0;
 
   for (a=1; a<argc; a++)
@@ -77,7 +85,7 @@ int	main(int argc, char *argv[])
           {
           case 'c':
             if (a<(argc-1))
-              strcpy(prefsname, argv[++a]);
+              strcpy(prefs.prefs_name, argv[++a]);
             break;
           case 'd':
             dumpprefs(opt2=='d' ? 1 : 0);
@@ -112,16 +120,28 @@ int	main(int argc, char *argv[])
       }
     }
 
-  readprefs(prefsname, argkey, argval, narg);
+  if ((ver=atof(TIFFGetVersion() + 16)) >= 4.0)
+    fprintf(OUTPUT, "\nBigTIFF support is: ON (libTIFF V%3.1f)\n", ver);
+  else
+    fprintf(OUTPUT, "\nBigTIFF support is: OFF (libTIFF V%3.1f)\n", ver);
+
+  readprefs(prefs.prefs_name, argkey, argval, narg);
+  preprefs();
   useprefs();
 
   free(argkey);
   free(argval);
 
+
   makeit();
 
-  NFPRINTF(OUTPUT, "All done");
-  NPRINTF(OUTPUT, "\n");
+  NFPRINTF(OUTPUT, "");
+  tdiff = prefs.time_diff>0.0? prefs.time_diff : 0.001;
+  lines = prefs.nlines/tdiff;
+  mpix = prefs.npix/tdiff/1e6;
+  NPRINTF(OUTPUT,
+        "> All done (in %.1f s: %.1f line%s/s , %.1f Mpixel%s/s)\n",
+        prefs.time_diff, lines, lines>1.0? "s":"", mpix, mpix>1.0? "s":"");
 
   exit(EXIT_SUCCESS);
   }

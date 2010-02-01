@@ -9,7 +9,7 @@
 *
 *	Contents:	Handling of field structures.
 *
-*	Last modify:	28/01/2003
+*	Last modify:	01/01/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -37,6 +37,7 @@ typedef struct field
   char		ident[MAXCHAR];		/* Field identifier (read from FITS) */
   catstruct	*cat;			/* Cat structure */
   tabstruct	*tab;			/* Selected structure */
+  int		size[2];		/* Image size */
   PIXTYPE	back;			/* Median */
   PIXTYPE	min;			/* Low cut */
   PIXTYPE	max;			/* High cut */

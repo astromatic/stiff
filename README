@@ -1,6 +1,5 @@
 STIFF is a program that convert scientific FITS images to the
-more popular TIFF, in 8 (grayscale) or 24 (true colour: 3 times 8) bits per
-pixel.
+more popular TIFF format.
 
 This file describes shortly the SYNTAX of STIFF.
 See INSTALL for instructions about install.
@@ -12,6 +11,7 @@ The general SYNTAX of STIFF is:
 % stiff <fits_image1>  [<fits_image2> <fits_image3>]
 	[-c <configuration_file>] [-<keyword> <value>]
 
-Please report any bug or strange behaviour to bertin@iap.fr.
+Please report any bug or strange behaviour to http://astromatic.net/forum .
 
 					Emmanuel Bertin.
+

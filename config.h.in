@@ -21,8 +21,14 @@
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
+/* Define if you have the libTIFF libraries and header files. */
+#undef HAVE_LIBTIFF
+
 /* Define to 1 if the system has the type `long long'. */
 #undef HAVE_LONG_LONG
+
+/* Define to 1 if the system has the type `long long int'. */
+#undef HAVE_LONG_LONG_INT
 
 /* Define to 1 if you have the `memmove' function. */
 #undef HAVE_MEMMOVE
@@ -38,6 +44,9 @@
 
 /* Define to 1 if you have the `munmap' function. */
 #undef HAVE_MUNMAP
+
+/* Define if you have POSIX threads libraries and header files. */
+#undef HAVE_PTHREAD
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -78,14 +87,26 @@
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
+/* Define to 1 if you have the <sys/time.h> header file. */
+#undef HAVE_SYS_TIME_H
+
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <time.h> header file. */
+#undef HAVE_TIME_H
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
 /* Define to 1 if the system has the type `unsigned long long'. */
 #undef HAVE_UNSIGNED_LONG_LONG
+
+/* Define to 1 if the system has the type `unsigned long long int'. */
+#undef HAVE_UNSIGNED_LONG_LONG_INT
+
+/* libTIFF header filename. */
+#undef LIBTIFF_H
 
 /* Name of package */
 #undef PACKAGE
@@ -105,14 +126,27 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* Define to the necessary symbol if this constant uses a non-standard name on
+   your system. */
+#undef PTHREAD_CREATE_JOINABLE
+
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* Maximum number of POSIX threads */
+#undef THREADS_NMAX
+
+/* Triggers multhreading */
+#undef USE_THREADS
+
 /* Version number of package */
 #undef VERSION
+
+/* Default URL of the XSLT filter */
+#undef XSL_URL
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 #undef _FILE_OFFSET_BITS
