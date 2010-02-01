@@ -1,0 +1,22 @@
+Feb 2010: V2.0
+        - Pyramidal TIFF support
+        - BigTIFF support
+        - SRGB and Rec.709 gamma correction support
+        - TIFF lossy and lossless compression support
+        - Supports up to 16 bits per component
+        - multithreaded code
+        - XML VO-Table metadata output
+Jan 2005: V1.10
+        - TIFF image is no longer upside-down
+        - Documentation written
+        - New TERAPIX page
+Nov 2004: V1.8
+        - Many bug fixes
+        - COLOUR_SAT and GAMMA_FAC parameters added
+Apr 2003: V1.6
+        - Much improved brightness/contrast scaling
+
+Jan 2003: V1.2
+        - Autoconfigured package
+
+Jun 2001: First 1.0 and 1.1 versions
