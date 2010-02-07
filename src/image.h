@@ -66,7 +66,8 @@ extern void	data_to_pix(fieldstruct **field, float **data, size_t offset,
 			int backflag, int minflag, int maxflag);
 
 extern char	*fitshead_to_desc(char *fitshead, int nheadblock,
-			int sizex, int sizey, int binx, int biny);
+			int sizex, int sizey, int binx, int biny,
+			int flipxflag, int flipyflag);
 
 extern int	image_convert_pyramid(char *filename, fieldstruct **field,
 			int nchan),

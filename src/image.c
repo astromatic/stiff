@@ -139,7 +139,8 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
 		prefs.copyright,
 		prefs.header_flag? (description
 			= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
-			width,height, binsizex0, binsizey0))
+			width,height, binsizex0, binsizey0,
+			flipxflag, flipyflag))
 			: prefs.description);
       break;
    default:
@@ -443,7 +444,8 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
 	prefs.copyright,
 	prefs.header_flag? (description
 		= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
-		width,height, binx *= binsizex0, biny *= binsizey0))
+		width,height, binx *= binsizex0, biny *= binsizey0,
+			flipxflag, flipyflag))
 		: prefs.description);
 
   bypp = image->bypp;
@@ -506,7 +508,8 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
 		prefs.copyright,
 		prefs.header_flag? (description
 			= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
-			width,height, binx *= binsizex0, biny *= binsizey0))
+			width,height, binx *= binsizex0, biny *= binsizey0,
+			flipxflag, flipyflag))
 			: prefs.description);
       }
 
@@ -1021,21 +1024,25 @@ void    pthread_cancel_threads(void)
 
 /****** fitshead_to_desc ******************************************************
 PROTO	char	*fitshead_to_desc(char *fitshead, int nheadblock,
-		int sizex, int sizey, int binx, int biny)
+		int sizex, int sizey, int binx, int biny,
+		int flipxflag, int flipyflag)
 PURPOSE	Convert FITS header to CDS-like description field.
 INPUT	Pointer to FITS header,
 	number of FITS blocks,
 	image size in x,
 	image size in y,
 	binning factor in x,
-	binning factor in y.
+	binning factor in y,
+	x-flipping flag,
+	y-flipping flag.
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
 VERSION	07/02/2010
  ***/
 char	*fitshead_to_desc(char *fitshead, int nheadblock,
-		int sizex, int sizey, int binx, int biny)
+		int sizex, int sizey, int binx, int biny,
+		int flipxflag, int flipyflag)
   {
     char	*description;
     double	dval;
@@ -1049,13 +1056,23 @@ char	*fitshead_to_desc(char *fitshead, int nheadblock,
   if (fitsread(description, "CRPIX1  ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
     {
     dval = (dval - 0.5)/binx + 0.5;
+    if (flipxflag)
+      dval = sizex+1 - dval;
     fitswrite(description, "CRPIX1  ", &dval, H_EXPO, T_DOUBLE);
     }
   if (fitsread(description, "CRPIX2  ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
     {
     dval = (dval - 0.5)/biny + 0.5;
+    if (flipyflag)
+      dval = sizey+1 - dval;
     fitswrite(description, "CRPIX2  ", &dval, H_EXPO, T_DOUBLE);
     }
+
+  if (flipxflag)
+    binx = -binx;
+  if (flipyflag)
+    biny = -biny;
+
   if (fitsread(description, "CDELT1  ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
     {
     dval *= binx;
