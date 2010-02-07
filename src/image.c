@@ -65,7 +65,7 @@ INPUT	Output filename,
 OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	13/01/2010
+VERSION	07/02/2010
  ***/
 void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   {
@@ -73,6 +73,7 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
    catstruct		**cat;
    tabstruct		**tab;
    unsigned char	*extrapix;
+   char			*description;
    float		*fbuf[3],
 			*fbuft0, *fbuft, *fsbuf;
    PIXTYPE		*ibuf,*ibuft,
@@ -135,8 +136,12 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
       image = create_tiff(filename, width, height, nchan, prefs.bpp, 0,
 		prefs.bigtiff_type,
 		prefs.compress_type, prefs.compress_quality,
-		prefs.copyright, prefs.description);
-     break;
+		prefs.copyright,
+		prefs.header_flag? (description
+			= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
+			width,height, binsizex0, binsizey0))
+			: prefs.description);
+      break;
    default:
      image = NULL; /* To avoid gcc -Wall warnings */
      error(EXIT_FAILURE, "This should not happen!", "");
@@ -324,13 +329,6 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   free(thread);
 #endif
 
-/* Close file and free memory */
-  free(ibuf);
-  for (a=0; a<nchan; a++)
-    free(fbuf[a]);
-  free(fsbuf);
-  free(cat);
-  free(tab);
   switch(prefs.format_type2)
     {
     case FORMAT_TIFF:
@@ -339,6 +337,16 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
     default:
       error(EXIT_FAILURE, "This should not happen!", "");
     }
+
+/* Close file and free memory */
+  free(ibuf);
+  for (a=0; a<nchan; a++)
+    free(fbuf[a]);
+  free(fsbuf);
+  free(cat);
+  free(tab);
+  if (prefs.header_flag)
+    free(description);
 
   return;
   }
@@ -353,7 +361,7 @@ INPUT	File name,
 OUTPUT	Number of pyramid levels.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	13/01/2010
+VERSION	07/02/2010
  ***/
 int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   {
@@ -367,10 +375,10 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
    size_t		ndata,ndatao;
    unsigned char	*pix;
    char			*swapname[3],
-			*swapnameo;
+			*swapnameo, *description;
    int			a,i,l, w,h, x,y,my,ny,bx,by, nlevels, width,height,
 			fwidth,fheight, binsizex0,binsizey0, binsizex,binsizey,
-			binsizexmax,binsizeymax, minsizex, minsizey,
+			binsizexmax,binsizeymax, minsizex, minsizey, binx,biny,
 			tilesize,tilesizey, flipxflag, flipyflag, bypp;
 
 /* Start by making a few checks */
@@ -428,9 +436,16 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   binsizey0 = prefs.bin_size[1];
   h = height = binsizey0>1? (fheight+binsizey0-1)/binsizey0 : fheight;
   QMALLOC(fbuf, PIXTYPE, fwidth);
+  binx = biny = 1;
+
   image = create_tiff(filename, width, height, nchan, prefs.bpp, tilesize,
 	prefs.bigtiff_type, prefs.compress_type, prefs.compress_quality,
-	prefs.copyright, prefs.description);
+	prefs.copyright,
+	prefs.header_flag? (description
+		= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
+		width,height, binx *= binsizex0, biny *= binsizey0))
+		: prefs.description);
+
   bypp = image->bypp;
 
 #ifdef USE_THREADS
@@ -469,7 +484,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   p = 0;
   QPTHREAD_CREATE(&tthread, &pthread_attr, &pthread_write_tiles, &p);
 #else
- install_cleanup(NULL);
+  install_cleanup(NULL);
 #endif
 
   for (nlevels = 1; (w/=2)>=minsizex && (h/=2)>=minsizey ; nlevels++);
@@ -483,9 +498,16 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
       width = fwidth/binsizex0;
       height = fheight/binsizey0;
       ndatao = ndata;
+
+      if (prefs.header_flag)
+        free(description);
       create_tiffdir(image, width, height, nchan, prefs.bpp, tilesize,
 		prefs.compress_type, prefs.compress_quality,
-		prefs.copyright, prefs.description);
+		prefs.copyright,
+		prefs.header_flag? (description
+			= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
+			width,height, binx *= binsizex0, biny *= binsizey0))
+			: prefs.description);
       }
 
     if (!(binsizexmax = fwidth%binsizex0))
@@ -658,6 +680,8 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   cleanup_files();
   free(cat);
   free(tab);
+  if (prefs.header_flag)
+    free(description);
 
   return nlevels;
   }
@@ -994,6 +1018,80 @@ void    pthread_cancel_threads(void)
   }
 
 #endif
+
+/****** fitshead_to_desc ******************************************************
+PROTO	char	*fitshead_to_desc(char *fitshead, int nheadblock,
+		int sizex, int sizey, int binx, int biny)
+PURPOSE	Convert FITS header to CDS-like description field.
+INPUT	Pointer to FITS header,
+	number of FITS blocks,
+	image size in x,
+	image size in y,
+	binning factor in x,
+	binning factor in y.
+OUTPUT	-.
+NOTES	-.
+AUTHOR	E. Bertin (IAP)
+VERSION	07/02/2010
+ ***/
+char	*fitshead_to_desc(char *fitshead, int nheadblock,
+		int sizex, int sizey, int binx, int biny)
+  {
+    char	*description;
+    double	dval;
+
+  QMEMCPY(fitshead, description, char, nheadblock*FBSIZE);
+
+  fitswrite(description, "NAXIS1  ", &sizex, H_INT, T_LONG);
+  fitswrite(description, "NAXIS2  ", &sizey, H_INT, T_LONG);
+
+/*---- Scale the WCS information if present */
+  if (fitsread(description, "CRPIX1  ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
+    {
+    dval = (dval - 0.5)/binx + 0.5;
+    fitswrite(description, "CRPIX1  ", &dval, H_EXPO, T_DOUBLE);
+    }
+  if (fitsread(description, "CRPIX2  ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
+    {
+    dval = (dval - 0.5)/biny + 0.5;
+    fitswrite(description, "CRPIX2  ", &dval, H_EXPO, T_DOUBLE);
+    }
+  if (fitsread(description, "CDELT1  ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
+    {
+    dval *= binx;
+    fitswrite(description, "CDELT1  ", &dval, H_EXPO, T_DOUBLE);
+    }
+  if (fitsread(description, "CDELT2  ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
+    {
+    dval *= biny;
+    fitswrite(description, "CDELT2  ", &dval, H_EXPO, T_DOUBLE);
+    }
+  if (fitsread(description, "CD1_1   ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
+    {
+    dval *= binx;
+    fitswrite(description, "CD1_1   ", &dval, H_EXPO, T_DOUBLE);
+    }
+  if (fitsread(description, "CD1_2   ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
+    {
+    dval *= biny;
+    fitswrite(description, "CD1_2   ", &dval, H_EXPO, T_DOUBLE);
+    }
+  if (fitsread(description, "CD2_1   ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
+    {
+    dval *= binx;
+    fitswrite(description, "CD2_1   ", &dval, H_EXPO, T_DOUBLE);
+    }
+  if (fitsread(description, "CD2_2   ", &dval, H_EXPO, T_DOUBLE)==RETURN_OK)
+    {
+    dval *= biny;
+    fitswrite(description, "CD2_2   ", &dval, H_EXPO, T_DOUBLE);
+    }
+
+  *(description + 80*fitsfind(description, "END     ")) = '\0';
+
+  return description;
+  }
+
 
 /****** make_imastats *********************************************************
 PROTO	void make_imastats(fieldstruct *field,

@@ -9,7 +9,7 @@
 *
 *	Contents:	Include for prefs.c.
 *
-*	Last modify:	18/01/2010
+*	Last modify:	07/02/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -26,6 +26,7 @@ typedef struct
   char		prefs_name[MAXCHAR];	/* prefs filename */
   char		*(file_name[MAXFILE]);	/* Filename(s) of input images */
   int		nfile;			/* Number of input images */
+  int		header_flag;		/* Copy FITS header to desc. field? */
   char		copyright[MAXCHAR];	/* Copyright notice */
   char		description[MAXCHAR];	/* Image description */
   int		bin_size[2];		/* Binning factor */

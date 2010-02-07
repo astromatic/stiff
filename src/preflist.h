@@ -9,7 +9,7 @@
 *
 *	Contents:	Keywords for the configuration file.
 *
-*	Last modify:	28/01/2010
+*	Last modify:	07/02/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -51,6 +51,7 @@ pkeystruct key[] =
   {"COMPRESSION_TYPE", P_KEY, &prefs.compress_type, 0,0, 0.0,0.0,
    {"NONE", "LZW", "JPEG", "DEFLATE", "ADOBE-DEFLATE", ""}},
   {"COLOUR_SAT", P_FLOAT, &prefs.colour_sat, 0,0, 0.0,10.0},
+  {"COPY_HEADER", P_BOOL, &prefs.header_flag},
   {"COPYRIGHT", P_STRING, prefs.copyright},
   {"DESCRIPTION", P_STRING, prefs.description},
 /*
@@ -146,6 +147,7 @@ char *default_prefs[] =
 "#------------------------------ Miscellaneous ---------------------------------",
 " ",
 "VERBOSE_TYPE           NORMAL          # QUIET, NORMAL or FULL",
+"COPY_HEADER            N               # Copy FITS header to description field?",
 "DESCRIPTION            \"STIFF image\"   # Image content description",
 "COPYRIGHT              AstrOmatic.net  # Copyright notice",
 "WRITE_XML              Y               # Write XML file (Y/N)?",

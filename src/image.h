@@ -9,7 +9,7 @@
 *
 *	Contents:	include for image.c.
 *
-*	Last modify:	13/01/2010
+*	Last modify:	07/02/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -64,6 +64,9 @@ extern void	data_to_pix(fieldstruct **field, float **data, size_t offset,
 			int nchan),
 		make_imastats(fieldstruct *field,
 			int backflag, int minflag, int maxflag);
+
+extern char	*fitshead_to_desc(char *fitshead, int nheadblock,
+			int sizex, int sizey, int binx, int biny);
 
 extern int	image_convert_pyramid(char *filename, fieldstruct **field,
 			int nchan),
