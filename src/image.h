@@ -9,7 +9,7 @@
 *
 *	Contents:	include for image.c.
 *
-*	Last modify:	07/02/2010
+*	Last modify:	08/02/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -18,7 +18,7 @@
 #define	_IMAGE_H_
 
 #ifndef _TIFFIO_
-#include <tiffio.h>
+#include LIBTIFF_H
 #endif
 
 #ifndef _FITSCAT_H_
