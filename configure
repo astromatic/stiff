@@ -7524,7 +7524,7 @@ fi
 if test "${with_z_libdir+set}" = set; then
   withval=$with_z_libdir; libz_libdir=$withval
 else
-  libtz_libdir=""
+  libz_libdir=""
 
 fi
 
@@ -8628,15 +8628,15 @@ if test x$acx_libtiff_ok = xyes; then
   else
     LIBTIFF_PATH="-L$libtiff_libdir"
   fi
-  if test x$libz_libdir = x; then
+  if test x$libjpeg_libdir = x; then
     LIBJPEG_PATH=""
   else
-    LIBJPEG_PATH="-L$libz_libdir"
+    LIBJPEG_PATH="-L$libjpeg_libdir"
   fi
-  if test x$libjpeg_libdir = x; then
+  if test x$libz_libdir = x; then
     LIBZ_PATH=""
   else
-    LIBZ_PATH="-L$libjpeg_libdir"
+    LIBZ_PATH="-L$libz_libdir"
   fi
   { $as_echo "$as_me:$LINENO: checking for jpeg_start_decompress in -ljpeg" >&5
 $as_echo_n "checking for jpeg_start_decompress in -ljpeg... " >&6; }

@@ -116,7 +116,7 @@ AC_ARG_WITH(z-libdir,
 	[AC_HELP_STRING([--with-z-libdir=<libz library dir>],
 	[Provide an alternative path to the libz library directory])],
     libz_libdir=$withval,
-    libtz_libdir=""
+    libz_libdir=""
     )
 AC_ARG_WITH(jpeg-libdir,
 	[AC_HELP_STRING([--with-jpeg-libdir=<libjpeg library dir>],
@@ -186,7 +186,7 @@ fi
 AM_CONDITIONAL(USE_THREADS, test $use_pthreads = "yes")
 
 ######################## handle the libTIFF library ###########################
-ACX_LIBTIFF($libtiff_libdir,$libtiff_incdir, $libz_libdir, $libjpeg_libdir,
+ACX_LIBTIFF($libtiff_libdir,$libtiff_incdir, $libjpeg_libdir, $libz_libdir,
 	[use_libtiff=yes],[use_libtiff=no])
 if test "$use_libtiff" = "yes"; then
   LIBS="$LIBTIFF_LIBS $LIBS"
