@@ -6,7 +6,7 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(stiff, 2.1.0, [bertin@iap.fr])
+AC_INIT(stiff, 2.1.1, [bertin@iap.fr])
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_HEADERS(config.h)
@@ -95,18 +95,6 @@ AC_CHECK_FUNCS([atexit memmove memset munmap strchr strpbrk strrchr strspn strcs
 AC_SYS_LARGEFILE
 AC_FUNC_FSEEKO
 
-datadir2=$(URBI_RESOLVE_DIR([$datadir]))
-
-# Provide a special option for the default XSLT URL
-AC_ARG_WITH(xsl_url,
-	[AC_HELP_STRING([--with-xsl_url=<default URL for XSLT filter>],
-	[Provide an alternative default URL of the XSLT filter])],
-    [xsl_url=$withval],
-    [xsl_url="file://$datadir2/$PACKAGE_NAME/$PACKAGE_NAME.xsl"]
-    )
-
-AC_DEFINE_UNQUOTED([XSL_URL], "$xsl_url",[Default URL of the XSLT filter])
-
 # Set flags for multithreading
 n_pthreads=16
 AC_ARG_ENABLE(threads,
@@ -124,6 +112,18 @@ AC_ARG_ENABLE(threads,
     )
 
 # Provide special options for libTIFF
+AC_ARG_WITH(z-libdir,
+	[AC_HELP_STRING([--with-z-libdir=<libz library dir>],
+	[Provide an alternative path to the libz library directory])],
+    libz_libdir=$withval,
+    libtz_libdir=""
+    )
+AC_ARG_WITH(jpeg-libdir,
+	[AC_HELP_STRING([--with-jpeg-libdir=<libjpeg library dir>],
+	[Provide an alternative path to the libJPEG library directory])],
+    libjpeg_libdir=$withval,
+    libjpeg_libdir=""
+    )
 AC_ARG_WITH(tiff-libdir,
 	[AC_HELP_STRING([--with-tiff-libdir=<libTIFF library dir>],
 	[Provide an alternative path to the libTIFF library directory])],
@@ -159,6 +159,18 @@ the executable as portable as possible (off by default)])],
         use_best="no"
 	AC_MSG_RESULT([no]))
 
+datadir2=$(URBI_RESOLVE_DIR([$datadir]))
+
+# Provide a special option for the default XSLT URL
+AC_ARG_WITH(xsl_url,
+	[AC_HELP_STRING([--with-xsl_url=<default URL for XSLT filter>],
+	[Provide an alternative default URL of the XSLT filter])],
+    [xsl_url=$withval],
+    [xsl_url="file://$datadir2/$PACKAGE_NAME/$PACKAGE_NAME.xsl"]
+    )
+
+AC_DEFINE_UNQUOTED([XSL_URL], "$xsl_url",[Default URL of the XSLT filter])
+
 ################# Actions to complete in case of multhreading ################
 AC_DEFINE_UNQUOTED(THREADS_NMAX, $n_pthreads,[Maximum number of POSIX threads])
 if test "$use_pthreads" = "yes"; then
@@ -174,7 +186,8 @@ fi
 AM_CONDITIONAL(USE_THREADS, test $use_pthreads = "yes")
 
 ######################## handle the libTIFF library ###########################
-ACX_LIBTIFF($libtiff_libdir,$libtiff_incdir, [use_libtiff=yes],[use_libtiff=no])
+ACX_LIBTIFF($libtiff_libdir,$libtiff_incdir, $libz_libdir, $libjpeg_libdir,
+	[use_libtiff=yes],[use_libtiff=no])
 if test "$use_libtiff" = "yes"; then
   LIBS="$LIBTIFF_LIBS $LIBS"
   if test "$LIBTIFF_WARN" != ""; then

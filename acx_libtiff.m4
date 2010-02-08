@@ -1,4 +1,4 @@
-dnl @synopsis ACX_LIBTIFF([LIBTIFF_LIBDIR, LIBTIFF_INCDIR, [ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]]])
+dnl @synopsis ACX_LIBTIFF([LIBTIFF_LIBDIR, LIBTIFF_INCDIR, LIBJPEG_LIBDIR, LIBZ_LIBDIR,[ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]]])
 dnl This macro figures out if the libTIFF libraries and header
 dnl files are installed.
 dnl You may wish to use these variables in your default LIBS and CFLAGS:
@@ -9,7 +9,7 @@ dnl ACTION-IF-FOUND is a list of shell commands to run if libTIFF
 dnl is found (HAVE_LIBTIFF is defined first), and ACTION-IF-NOT-FOUND
 dnl is a list of commands to run it if it is not found.
 dnl
-dnl @version $Id: acx_libtiff.m4,v 1.0 2009/12/29 21:30:17 bertin Exp $
+dnl @version $Id: acx_libtiff.m4,v 1.0 2010/02/08 13:30:17 bertin Exp $
 dnl @author Emmanuel Bertin <bertin@iap.fr>
 
 AC_DEFUN([ACX_LIBTIFF], [
@@ -43,29 +43,36 @@ dnl --------------------
 LIBTIFF_LIBS=""
 OLIBS="$LIBS"
 LIBS=""
-
 if test x$acx_libtiff_ok = xyes; then
+  if test x$1 = x; then
+    LIBTIFF_PATH=""
+  else
+    LIBTIFF_PATH="-L$1"
+  fi
+  if test x$3 = x; then
+    LIBJPEG_PATH=""
+  else
+    LIBJPEG_PATH="-L$3"
+  fi
+  if test x$4 = x; then
+    LIBZ_PATH=""
+  else
+    LIBZ_PATH="-L$4"
+  fi
 dnl Check jpeg and deflate library files (necessary for static libtiff)
-  AC_CHECK_LIB(jpeg, jpeg_start_decompress, [acx_libtiff_ok=yes], [acx_libtiff_ok=no])
+  AC_CHECK_LIB(jpeg, jpeg_start_decompress, [acx_libtiff_ok=yes], [acx_libtiff_ok=no], [$LIBJPEG_PATH])
   if test x$acx_libtiff_ok = xyes; then
-    AC_CHECK_LIB(z, deflate, [acx_libtiff_ok=yes], [acx_libtiff_ok=no])
+    AC_CHECK_LIB(z, deflate, [acx_libtiff_ok=yes], [acx_libtiff_ok=no], [$LIBZ_PATH])
     if test x$acx_libtiff_ok = xyes; then
-      if test x$1 = x; then
-        AC_CHECK_LIB(tiff, TIFFOpen, [acx_libtiff_ok=yes], [acx_libtiff_ok=no])
-        if test x$acx_libtiff_ok = xyes; then
-          AC_DEFINE(HAVE_LIBTIFF,1, [Define if you have the libTIFF libraries and header files.])
-          LIBTIFF_LIBS="-ltiff -ljpeg -lz"
+      AC_CHECK_LIB(tiff, TIFFOpen, [acx_libtiff_ok=yes], [acx_libtiff_ok=no], [$LIBTIFF_PATH $LIBJPEG_PATH -ljpeg $LIBZ_PATH -lz -lm])
+      if test x$acx_libtiff_ok = xyes; then
+        AC_DEFINE(HAVE_LIBTIFF,1, [Define if you have the libTIFF libraries and header files.])
+        LIBTIFF_LIBS="$LIBTIFF_PATH -ltiff $LIBJPEG_PATH -ljpeg $LIBZ_PATH -lz"
+      else
+        if test x$1 = x; then
+          LIBTIFF_ERROR="libTIFF library files not found in $1!"
         else
           LIBTIFF_ERROR="libTIFF library files not found at the usual locations!"
-        fi
-      else
-dnl Specific libdir specified
-        AC_CHECK_LIB(tiff, TIFFOpen, [acx_libtiff_ok=yes], [acx_libtiff_ok=no], [-L$1 -lz -ljpeg -lm])
-        if test x$acx_libtiff_ok = xyes; then
-          AC_DEFINE(HAVE_LIBTIFF,1, [Define if you have the libTIFF libraries and header files.])
-          LIBTIFF_LIBS="-L$1 -ltiff -ljpeg -lz"
-        else
-          LIBTIFF_ERROR="libTIFF library files not found in $1!"
         fi
       fi
     fi
@@ -75,10 +82,10 @@ fi
 LIBS="$OLIBS"
 if test x$acx_libtiff_ok = xyes; then
   AC_SUBST(LIBTIFF_LIBS)
-  $3
+  $5
 else
   AC_SUBST(LIBTIFF_ERROR)
-  $4
+  $6
 fi
 
 ])dnl ACX_LIBTIFF
