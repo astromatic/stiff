@@ -9,7 +9,7 @@
 *
 *       Contents:       Convert FITS data to 8-bit format
 *
-*       Last modify:    01/02/2010
+*       Last modify:    08/02/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -65,7 +65,7 @@ INPUT	Output filename,
 OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	07/02/2010
+VERSION	08/02/2010
  ***/
 void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   {
@@ -93,6 +93,7 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   QMALLOC(cat, catstruct *, nchan);
   QMALLOC(tab, tabstruct *, nchan);
   fwidth = fheight = 0;
+  description = NULL;	/* to avoid gcc -Wall warnings */
 
   for (a=0; a<nchan; a++)
     {
@@ -390,6 +391,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   ndatao = ndata = 0;
   fbuft = datao = NULL;
   image = NULL;
+  description = NULL;
   QMALLOC(cat, catstruct *, nchan);
   QMALLOC(tab, tabstruct *, nchan);
   fwidth = fheight = 0;
@@ -1038,7 +1040,7 @@ INPUT	Pointer to FITS header,
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	07/02/2010
+VERSION	08/02/2010
  ***/
 char	*fitshead_to_desc(char *fitshead, int nheadblock,
 		int sizex, int sizey, int binx, int biny,
@@ -1047,6 +1049,7 @@ char	*fitshead_to_desc(char *fitshead, int nheadblock,
     char	*description;
     double	dval;
 
+  description = NULL;	/* to avoid gcc -Wall warnings */
   QMEMCPY(fitshead, description, char, nheadblock*FBSIZE);
 
   fitswrite(description, "NAXIS1  ", &sizex, H_INT, T_LONG);

@@ -9,7 +9,7 @@
 *
 *	Contents:	Functions related to the management of keys.
 *
-*	Last modify:	02/11/2009
+*	Last modify:	08/02/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -575,7 +575,7 @@ NOTES	This is approximately the same code as for read_keys.
 	A NULL keynames pointer means read ALL keys belonging to the table.
 	A NULL mask pointer means NO selection for reading.
 AUTHOR	E. Bertin (IAP & Leiden observatory)
-VERSION	02/11/2009
+VERSION	08/02/2010
  ***/
 void	show_keys(tabstruct *tab, char **keynames, keystruct **keys, int nkeys,
 		BYTE *mask, FILE *stream,
@@ -970,7 +970,7 @@ void	show_keys(tabstruct *tab, char **keynames, keystruct **keys, int nkeys,
   if (kflag)
     free(keys);
   if (o_type == SHOW_SKYCAT) 
-     fprintf(stream, skycattail);
+     fprintf(stream, skycattail, 1.0);
   return;
   }
 

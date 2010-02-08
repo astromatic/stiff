@@ -43,7 +43,9 @@ int	main(int argc, char *argv[])
   {
    double	tdiff, lines,mpix;
    float	ver;
-   char		**argkey, **argval, *str;
+   char		verstr[80],
+		**argkey, **argval,
+		*str;
    int		a, narg, nim, opt,opt2;
 
   if (argc<2)
@@ -51,7 +53,8 @@ int	main(int argc, char *argv[])
     fprintf(OUTPUT, "\n         %s  version %s (%s)\n", BANNER,MYVERSION,DATE);
     fprintf(OUTPUT, "\nby %s\n", COPYRIGHT);
     fprintf(OUTPUT, "visit %s\n", WEBSITE);
-    if ((ver=atof(TIFFGetVersion() + 16)) >= 4.0)
+    strcpy(verstr, TIFFGetVersion());
+    if ((ver=atof(verstr + 16)) >= 4.0)
       fprintf(OUTPUT, "\nBigTIFF support is: ON (libTIFF V%3.1f)\n", ver);
     else
       fprintf(OUTPUT, "\nBigTIFF support is: OFF (libTIFF V%3.1f)\n", ver);
@@ -120,8 +123,9 @@ int	main(int argc, char *argv[])
       }
     }
 
-  if ((ver=atof(TIFFGetVersion() + 16)) >= 4.0)
-    fprintf(OUTPUT, "\nBigTIFF support is: ON (libTIFF V%3.1f)\n", ver);
+  strcpy(verstr, TIFFGetVersion());
+  if ((ver=atof(verstr + 16)) >= 4.0)
+   fprintf(OUTPUT, "\nBigTIFF support is: ON (libTIFF V%3.1f)\n", ver);
   else
     fprintf(OUTPUT, "\nBigTIFF support is: OFF (libTIFF V%3.1f)\n", ver);
 
