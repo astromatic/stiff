@@ -9,7 +9,7 @@
 *
 *       Contents:       Handle TIFF format
 *
-*       Last modify:    01/02/2010
+*       Last modify:    08/02/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <tiffio.h>
+#include LIBTIFF_H
 #include <unistd.h>
 
 #include "define.h"
