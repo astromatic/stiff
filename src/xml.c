@@ -9,7 +9,7 @@
 *
 *	Contents:	XML logging.
 *
-*	Last modify:	01/02/2010
+*	Last modify:	10/02/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -189,7 +189,7 @@ INPUT	Pointer to the output file (or stream),
 OUTPUT	RETURN_OK if everything went fine, RETURN_ERROR otherwise.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	01/02/2010
+VERSION	10/02/2010
  ***/
 int	write_xml_meta(FILE *file, char *error)
   {
@@ -410,6 +410,7 @@ int	write_xml_meta(FILE *file, char *error)
     write_xmlconfigparam(file, "VMem_Max", "Mbyte","meta.number;stat.max","%d");
     write_xmlconfigparam(file, "Mem_Max", "Mbyte", "meta.number;stat.max","%d");
 
+    write_xmlconfigparam(file, "Copy_Header", "", "meta.code", "%c");
     write_xmlconfigparam(file, "Description", "", "meta.title", "%s");
     write_xmlconfigparam(file, "Copyright", "", "meta.curation", "%s");
 
