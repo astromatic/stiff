@@ -43,7 +43,7 @@ int	main(int argc, char *argv[])
   {
    double	tdiff, lines,mpix;
    float	ver;
-   char		verstr[80],
+   char		verstr[MAXCHAR],
 		**argkey, **argval,
 		*str;
    int		a, narg, nim, opt,opt2;
