@@ -9,10 +9,78 @@
 *
 *       Contents:       log of changes made to the STIFF source code
 *
-*       Last modify:    01/02/2010
+*       Last modify:    10/02/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
+
+------------------------------------------------------------------------
+r34 | bertin | 2010-02-10 14:55:07 +0100 (Wed, 10 Feb 2010) | 3 lines
+
+Updated documention.
+Added COPY_HEADER config parameter in the XML metadata output.
+
+------------------------------------------------------------------------
+r33 | bertin | 2010-02-10 12:48:21 +0100 (Wed, 10 Feb 2010) | 2 lines
+
+Fixed array overflow with TIFFGetVersion() preventing execution on Mac OS X.
+
+------------------------------------------------------------------------
+r32 | bertin | 2010-02-08 21:51:25 +0100 (Mon, 08 Feb 2010) | 2 lines
+
+Removed compilation warnings.
+
+------------------------------------------------------------------------
+r31 | bertin | 2010-02-08 21:24:40 +0100 (Mon, 08 Feb 2010) | 2 lines
+
+Added missing LIBTIFF_H include in main.c and tiff.c.
+
+------------------------------------------------------------------------
+r30 | bertin | 2010-02-08 16:57:17 +0100 (Mon, 08 Feb 2010) | 2 lines
+
+Had forgotten to include explicitely LIBTIFF_H.
+
+------------------------------------------------------------------------
+r29 | bertin | 2010-02-08 14:37:02 +0100 (Mon, 08 Feb 2010) | 2 lines
+
+Fixed typo in configure.ac.
+
+------------------------------------------------------------------------
+r28 | bertin | 2010-02-08 13:38:21 +0100 (Mon, 08 Feb 2010) | 2 lines
+
+Added --with-z-libdir and --with-jpeg-libdir option to configure.
+
+------------------------------------------------------------------------
+r27 | bertin | 2010-02-07 22:54:34 +0100 (Sun, 07 Feb 2010) | 2 lines
+
+Added proper modification of FITS WCS header keywords for all FLIP_TYPEs.
+
+------------------------------------------------------------------------
+r26 | bertin | 2010-02-07 22:13:15 +0100 (Sun, 07 Feb 2010) | 3 lines
+
+Added COPY_HEADER configuration option to allow copy the FITS header to the
+TIFF Description tag (suggestion by R.Barba).
+Pushed version number to 2.1.0.
+
+------------------------------------------------------------------------
+r22 | bertin | 2010-02-01 17:23:27 +0100 (Mon, 01 Feb 2010) | 2 lines
+
+Added missing threads.c and threads.h.
+
+------------------------------------------------------------------------
+r21 | bertin | 2010-02-01 17:22:08 +0100 (Mon, 01 Feb 2010) | 2 lines
+
+Added missing acx_urbi_resolve_dir.m4.
+
+------------------------------------------------------------------------
+r20 | bertin | 2010-02-01 17:17:15 +0100 (Mon, 01 Feb 2010) | 2 lines
+
+Had forgotten XSLT path autoconfig file.
+
+------------------------------------------------------------------------
+r18 | bertin | 2010-02-01 15:16:00 +0100 (Mon, 01 Feb 2010) | 2 lines
+
+Updated Changelog
 
 ------------------------------------------------------------------------
 r17 | bertin | 2010-02-01 15:13:41 +0100 (Mon, 01 Feb 2010) | 20 lines

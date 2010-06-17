@@ -9,7 +9,7 @@
 *
 *       Contents:       Convert FITS data to 8-bit format
 *
-*       Last modify:    08/02/2010
+*       Last modify:    17/06/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -363,7 +363,7 @@ INPUT	File name,
 OUTPUT	Number of pyramid levels.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	07/02/2010
+VERSION	16/06/2010
  ***/
 int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   {
@@ -371,7 +371,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
    catstruct		**cat;
    tabstruct		**tab;
    float		*data[3],
-			*datat,*datatt, *datao, *fbuf, *fbuft, *fsbuf,
+			*datat,*datatt, *datao, *fbuf, *fbuft,*fbuftt, *fsbuf,
 			fpix, fac;
    OFF_T		imoffset;
    size_t		ndata,ndatao;
@@ -496,7 +496,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
     {
     if (l>1)
       {
-      binsizex0 = binsizey0 = 2;
+      binsizexmax = binsizeymax = binsizex0 = binsizey0 = 2;
       fwidth = width;
       fheight = height;
       width = fwidth/binsizex0;
@@ -514,14 +514,17 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
 			flipxflag, flipyflag))
 			: prefs.description);
       }
+    else
+      {
+      if (!(binsizexmax = fwidth%binsizex0))
+        binsizexmax = binsizex0;
+      if (!(binsizeymax = fheight%binsizey0))
+        binsizeymax = binsizey0;
 
-    if (!(binsizexmax = fwidth%binsizex0))
-      binsizexmax = binsizex0;
-    if (!(binsizeymax = fheight%binsizey0))
-      binsizeymax = binsizey0;
+      width = binsizex0>1? (fwidth+binsizex0-1)/binsizex0 : fwidth;
+      height = binsizey0>1? (fheight+binsizey0-1)/binsizey0 : fheight;
+      }
 
-    width = binsizex0>1? (fwidth+binsizex0-1)/binsizex0 : fwidth;
-    height = binsizey0>1? (fheight+binsizey0-1)/binsizey0 : fheight;
     ndata = (size_t)width*(size_t)height;
 
     for (a=0; a<nchan; a++)
@@ -560,6 +563,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
             read_body(tab[a], fbuf, fwidth);
             fbuft = fbuf;
             }
+          fbuftt = fbuft;
           if (flipxflag && l==1)
             {
             datatt = datat + width;
@@ -569,7 +573,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
               binsizex = x>0? binsizex0:binsizexmax;
               fac = 1.0/(binsizex*binsizey);
               for (bx=binsizex; bx--;)
-                fpix += *(fbuft++);
+                fpix += *(fbuftt++);
               *(--datatt) += fac*fpix;
 	      }
             }
@@ -582,10 +586,11 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
               binsizex = x>0? binsizex0:binsizexmax;
               fac = 1.0/(binsizex*binsizey);
               for (bx=binsizex; bx--;)
-                fpix += *(fbuft++);
+                fpix += *(fbuftt++);
               *(datatt++) += fac*fpix;
 	      }
             }
+          fbuft += fwidth;
           }
         datat += width;
         }
@@ -859,7 +864,7 @@ INPUT	Input array of pixels,
 OUTPUT	Number of tiles along the x axis.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	01/02/2010
+VERSION	17/06/2010
  ***/
 int raster_to_tiles(unsigned char *inpix, unsigned char *outpix,
 			int width, int tilesizey, int tilesize, int nbytes)
@@ -881,7 +886,7 @@ int raster_to_tiles(unsigned char *inpix, unsigned char *outpix,
       {
       tilesizex = width - x*tilesizex;
       if (tilesizex != tilesizef)
-        memset(outpixt, 0, tilesizef);
+        memset(outpixt, 0, tilesizef*tilesize);
       }
     for (y=tilesizey; y--; inpixt += width, outpixt += tilesizef)
       memcpy(outpixt, inpixt, tilesizex);

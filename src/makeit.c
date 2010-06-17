@@ -9,7 +9,7 @@
 *
 *       Contents:       Main loop
 *
-*       Last modify:    12/01/2010
+*       Last modify:    16/06/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -24,6 +24,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include LIBTIFF_H
 
 #include "define.h"
 #include "globals.h"
@@ -46,7 +47,9 @@ void	makeit(void)
    struct tm		*tm;
    fieldstruct		**field;
    PIXTYPE		grey;
-   char			*rfilename;
+   float		ver;
+   char			verstr[MAXCHAR],
+			*rfilename;
    int			a,w,h, narg, level;
 
 /* Install error logging */
@@ -60,6 +63,22 @@ void	makeit(void)
 	tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
   sprintf(prefs.stime_start,"%02d:%02d:%02d",
 	tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+  NFPRINTF(OUTPUT, "");
+  QPRINTF(OUTPUT,
+        "----- %s %s started on %s at %s with %d thread%s\n\n",
+                BANNER,
+                MYVERSION,
+                prefs.sdate_start,
+                prefs.stime_start,
+                prefs.nthreads,
+                prefs.nthreads>1? "s":"");
+
+  strcpy(verstr, TIFFGetVersion());
+  if ((ver=atof(verstr + 16)) >= 4.0)
+    NPRINTF(OUTPUT, "> BigTIFF support is: ON (libTIFF V%3.1f)\n\n", ver);
+  else
+    NPRINTF(OUTPUT, "> BigTIFF support is: OFF (libTIFF V%3.1f)\n\n", ver);
 
 /* Load input images */
   narg = prefs.nfile;
@@ -114,12 +133,12 @@ void	makeit(void)
   prefs.nlines = (double)h;
   prefs.npix = (double)w*(double)h;
 
-  QPRINTF(OUTPUT, "----- Output:\n");
+  QPRINTF(OUTPUT, "\n----- Output:\n");
   for (level = 1;
 	((prefs.format_type2 == FORMAT_TIFF_PYRAMID)
-		&& (w/=2)>=prefs.min_size[0] && (h/=2)>=prefs.min_size[1])
+		&& w>=prefs.min_size[0] && h>=prefs.min_size[1])
 	|| level<2;
-	level++)
+	level++, w/=2,h/=2)
     QPRINTF(OUTPUT, "%s: %6dx%-6d  %-2d bits  gamma: x%4.2f  compression: %s \n",
         rfilename,
 	w,
@@ -128,6 +147,8 @@ void	makeit(void)
 	prefs.gamma_fac,
 	key[findkeys("COMPRESSION_TYPE", keylist,
 		FIND_STRICT)].keylist[prefs.compress_type]);
+
+  QPRINTF(OUTPUT, "\n");
 
 /* Do the conversion */
   if (prefs.format_type2 == FORMAT_TIFF_PYRAMID)

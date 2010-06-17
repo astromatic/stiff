@@ -9,7 +9,7 @@
 *
 *	Contents:	Parsing of the command line.
 *
-*	Last modify:	08/02/2010
+*	Last modify:	16/06/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -122,12 +122,6 @@ int	main(int argc, char *argv[])
       a--;
       }
     }
-
-  strcpy(verstr, TIFFGetVersion());
-  if ((ver=atof(verstr + 16)) >= 4.0)
-   fprintf(OUTPUT, "\nBigTIFF support is: ON (libTIFF V%3.1f)\n", ver);
-  else
-    fprintf(OUTPUT, "\nBigTIFF support is: OFF (libTIFF V%3.1f)\n", ver);
 
   readprefs(prefs.prefs_name, argkey, argval, narg);
   preprefs();
