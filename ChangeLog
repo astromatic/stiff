@@ -9,10 +9,17 @@
 *
 *       Contents:       log of changes made to the STIFF source code
 *
-*       Last modify:    10/02/2010
+*       Last modify:    17/06/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
+
+------------------------------------------------------------------------
+r35 | bertin | 2010-06-17 14:35:25 +0200 (Thu, 17 Jun 2010) | 4 lines
+
+Fixed crash bug on tiled pyramids with some specific image sizes.
+Improved display.
+Pushed version number to 2.1.3.
 
 ------------------------------------------------------------------------
 r34 | bertin | 2010-02-10 14:55:07 +0100 (Wed, 10 Feb 2010) | 3 lines
