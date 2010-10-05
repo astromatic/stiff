@@ -9,7 +9,7 @@
 *
 *	Contents:	Keywords for the configuration file.
 *
-*	Last modify:	10/02/2010
+*	Last modify:	05/10/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -58,6 +58,7 @@ pkeystruct key[] =
   {"DOWNSAMPLING_TYPE", P_KEY, &prefs.downsamp_type, 0,0, 0.0,0.0,
    {"4:4:4", "4:2:2", "4:2:0", ""}},
 */
+  {"FITS_UNSIGNED", P_BOOL, &prefs.fitsunsigned_flag},
   {"FLIP_TYPE", P_KEY, &prefs.flip_type, 0,0, 0.0,0.0,
    {"NONE", "X", "Y", "XY", ""}},
   {"GAMMA", P_FLOAT, &prefs.gamma, 0,0, 1e-3,10.0},
@@ -161,5 +162,7 @@ char *default_prefs[] =
 #else
 "NTHREADS              1                # 1 single thread",
 #endif
+"*",
+"*FITS_UNSIGNED          N               # Treat FITS integer values as unsigned",
 ""
  };

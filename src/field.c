@@ -9,7 +9,7 @@
 *
 *	Contents:	Handle fields (image).
 *
-*	Last modify:	04/01/2010
+*	Last modify:	05/10/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -37,7 +37,7 @@ OUTPUT  A pointer to the created field structure.
 NOTES   Global preferences are used. The function is not reentrant because
 	of static variables (prefs structure members are updated).
 AUTHOR  E. Bertin (IAP)
-VERSION 04/01/2010
+VERSION 05/10/2010
 */
 fieldstruct	*load_field(char *filename)
   {
@@ -80,6 +80,10 @@ fieldstruct	*load_field(char *filename)
 /*-- Force the data to be at least 2D */
   if (tab->naxis<2)
     error(EXIT_FAILURE, "*Error*: no 2D FITS data in ", filename);
+
+/*-- Force unsigned int */
+  if (tab->bitsgn && prefs.fitsunsigned_flag)
+    tab->bitsgn = 0;
 
 /*-- Get image dimensions */
   field->size[0] = tab->naxisn[0];

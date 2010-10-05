@@ -189,7 +189,7 @@ INPUT	Pointer to the output file (or stream),
 OUTPUT	RETURN_OK if everything went fine, RETURN_ERROR otherwise.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	10/02/2010
+VERSION	05/10/2010
  ***/
 int	write_xml_meta(FILE *file, char *error)
   {
@@ -415,6 +415,7 @@ int	write_xml_meta(FILE *file, char *error)
     write_xmlconfigparam(file, "Copyright", "", "meta.curation", "%s");
 
     write_xmlconfigparam(file, "Verbose_Type", "", "meta.code", "%s");
+    write_xmlconfigparam(file, "FITS_Unsigned", "", "meta.code;obs.param", "%c");
     write_xmlconfigparam(file, "Write_XML", "", "meta.code", "%c");
     write_xmlconfigparam(file, "NThreads","","meta.number;meta.software","%d");
     }

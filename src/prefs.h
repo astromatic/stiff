@@ -9,7 +9,7 @@
 *
 *	Contents:	Include for prefs.c.
 *
-*	Last modify:	07/02/2010
+*	Last modify:	05/10/2010
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
@@ -81,6 +81,7 @@ typedef struct
   enum {QUIET, NORM, WARN, FULL}	verbose_type;	/* display type */
   double	nlines;			/* Image height in pixels */
   double	npix;			/* Number of image pixels */
+  int		fitsunsigned_flag;	/* Force unsign FITS */
 /* XML */
   int 		xml_flag;		/* Write XML file? */
   char		xml_name[MAXCHAR];	/* XML file name */
