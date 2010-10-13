@@ -1,18 +1,32 @@
- /*
- 				preflist.h
-
-*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/*
+*				preflist.h
 *
-*	Part of:	STIFF
+* Configuration keyword definitions
 *
-*	Author:		E.BERTIN (IAP)
+*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	Contents:	Keywords for the configuration file.
+*	This file part of:	STIFF
 *
-*	Last modify:	05/10/2010
+*	Copyright:		(C) 2003-2010 IAP/CNRS/UPMC
 *
-*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-*/
+*	Author:			Emmanuel Bertin (IAP)
+*
+*	License:		GNU General Public License
+*
+*	STIFF is free software: you can redistribute it and/or modify
+*	it under the terms of the GNU General Public License as published by
+*	the Free Software Foundation, either version 3 of the License, or
+*	(at your option) any later version.
+*	STIFF is distributed in the hope that it will be useful,
+*	but WITHOUT ANY WARRANTY; without even the implied warranty of
+*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*	GNU General Public License for more details.
+*	You should have received a copy of the GNU General Public License
+*	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
+*
+*	Last modified:		13/10/2010
+*
+*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 #include "key.h"
 
@@ -121,6 +135,7 @@ char *default_prefs[] =
 "*PYRAMID_MINSIZE        256             # Minimum plane size in TIFF pyramid",
 "BINNING                1               # Binning factor for the data",
 "*FLIP_TYPE              NONE            # NONE, or flip about X, Y or XY",
+"*FITS_UNSIGNED          N               # Treat FITS integers as unsigned",
 " ",
 "#------------------------------- Dynamic range ------------------------------",
 " ",
@@ -162,7 +177,5 @@ char *default_prefs[] =
 #else
 "NTHREADS              1                # 1 single thread",
 #endif
-"*",
-"*FITS_UNSIGNED          N               # Treat FITS integer values as unsigned",
 ""
  };

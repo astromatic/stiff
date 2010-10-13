@@ -1,18 +1,32 @@
- /*
-				xml.c
-
-*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/*
+*				xml.c
 *
-*	Part of:	STIFF
+* Include file for tiff.c.
 *
-*	Author:		E.BERTIN (IAP)
+*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	Contents:	XML logging.
+*	This file part of:	STIFF
 *
-*	Last modify:	10/02/2010
+*	Copyright:		(C) 2009-2010 IAP/CNRS/UPMC
 *
-*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-*/
+*	Author:			Emmanuel Bertin (IAP)
+*
+*	License:		GNU General Public License
+*
+*	STIFF is free software: you can redistribute it and/or modify
+*	it under the terms of the GNU General Public License as published by
+*	the Free Software Foundation, either version 3 of the License, or
+*	(at your option) any later version.
+*	STIFF is distributed in the hope that it will be useful,
+*	but WITHOUT ANY WARRANTY; without even the implied warranty of
+*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*	GNU General Public License for more details.
+*	You should have received a copy of the GNU General Public License
+*	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
+*
+*	Last modified:		13/10/2010
+*
+*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 #ifdef HAVE_CONFIG_H
 #include	"config.h"
@@ -144,7 +158,7 @@ INPUT	file or stream pointer.
 OUTPUT	RETURN_OK if everything went fine, RETURN_ERROR otherwise.
 NOTES	Global preferences are used.
 AUTHOR	E. Bertin (IAP)
-VERSION	02/01/2010
+VERSION	13/10/2010
  ***/
 int	write_xml_header(FILE *file)
   {
@@ -415,7 +429,7 @@ int	write_xml_meta(FILE *file, char *error)
     write_xmlconfigparam(file, "Copyright", "", "meta.curation", "%s");
 
     write_xmlconfigparam(file, "Verbose_Type", "", "meta.code", "%s");
-    write_xmlconfigparam(file, "FITS_Unsigned", "", "meta.code;obs.param", "%c");
+    write_xmlconfigparam(file, "FITS_Unsigned", "", "meta.code;meta.file", "%c");
     write_xmlconfigparam(file, "Write_XML", "", "meta.code", "%c");
     write_xmlconfigparam(file, "NThreads","","meta.number;meta.software","%d");
     }

@@ -1,18 +1,32 @@
- /*
- 				main.c
-
-*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/*
+*				main.c
 *
-*	Part of:	STIFF
+* Command line parsing
 *
-*	Author:		E.BERTIN (IAP)
+*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	Contents:	Parsing of the command line.
+*	This file part of:	STIFF
 *
-*	Last modify:	16/06/2010
+*	Copyright:		(C) 2003-2010 IAP/CNRS/UPMC
 *
-*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-*/
+*	Author:			Emmanuel Bertin (IAP)
+*
+*	License:		GNU General Public License
+*
+*	STIFF is free software: you can redistribute it and/or modify
+*	it under the terms of the GNU General Public License as published by
+*	the Free Software Foundation, either version 3 of the License, or
+*	(at your option) any later version.
+*	STIFF is distributed in the hope that it will be useful,
+*	but WITHOUT ANY WARRANTY; without even the implied warranty of
+*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*	GNU General Public License for more details.
+*	You should have received a copy of the GNU General Public License
+*	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
+*
+*	Last modified:		13/10/2010
+*
+*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -51,8 +65,10 @@ int	main(int argc, char *argv[])
   if (argc<2)
     {
     fprintf(OUTPUT, "\n         %s  version %s (%s)\n", BANNER,MYVERSION,DATE);
-    fprintf(OUTPUT, "\nby %s\n", COPYRIGHT);
-    fprintf(OUTPUT, "visit %s\n", WEBSITE);
+    fprintf(OUTPUT, "\nby %s\n", AUTHORS);
+    fprintf(OUTPUT, "Copyright %s\n", COPYRIGHT);
+    fprintf(OUTPUT, "\nvisit %s\n", WEBSITE);
+    fprintf(OUTPUT, "\n%s\n", DISCLAIMER);
     strcpy(verstr, TIFFGetVersion());
     if ((ver=atof(verstr + 16)) >= 4.0)
       fprintf(OUTPUT, "\nBigTIFF support is: ON (libTIFF V%3.1f)\n", ver);
