@@ -1,6 +1,12 @@
 Nicolas Devillard <ndevilla@free.fr>
         Fast median algorithm (see http://ndevilla.free.fr)
 
+Steven G. Johnson <stevenj@alum.mit.edu>
+        For his AC_PTHREAD (modified to ACX_PTHREAD)
+
+Ville Laurikari <vl@iki.fi>
+        for his VL_PROG_CC_WARNINGS (modified to ACX_PROG_CC_OPTIM)
+
 Chiara Marmo <chiara.marmo@u-psud.fr>
         Help with the XSLT stylesheet
 

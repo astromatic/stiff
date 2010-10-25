@@ -7,9 +7,9 @@
 #
 #	This file part of:	STIFF
 #
-#	Copyright:		(C) 2003-2010 IAP/CNRS/UPMC
+#	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
 #
-#	Author:			Emmanuel Bertin (IAP)
+#	License:		GNU General Public License
 #
 #	STIFF is free software: you can redistribute it and/or modify
 #	it under the terms of the GNU General Public License as published by
