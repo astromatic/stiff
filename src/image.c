@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		21/02/2011
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -375,7 +375,7 @@ INPUT	File name,
 OUTPUT	Number of pyramid levels.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	16/06/2010
+VERSION	21/02/2011
  ***/
 int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   {
@@ -503,8 +503,8 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   install_cleanup(NULL);
 #endif
 
-  for (nlevels = 1; (w/=2)>=minsizex && (h/=2)>=minsizey ; nlevels++);
-  for (l=1; l<=nlevels; l++)
+  for (nlevels = 1; w>=minsizex || h>=minsizey ; nlevels++, w/=2, h/=2);
+  for (l=1; l<nlevels; l++)
     {
     if (l>1)
       {
@@ -558,7 +558,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
         NPRINTF(OUTPUT,
 		"\33[1M> Channel %1d/%-1d: Pyramid level %2d/%-2d: "
 		"Reducing line %7d/%-7d\n\33[1A",
-		a+1, nchan, l, nlevels, y+1, height);
+		a+1, nchan, l, nlevels-1, y+1, height);
         binsizey = ((y+1)<height? binsizey0:binsizeymax);
         my -= binsizey;
         if (!flipyflag && l==1)

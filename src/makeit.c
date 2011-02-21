@@ -148,7 +148,7 @@ void	makeit(void)
   QPRINTF(OUTPUT, "\n----- Output:\n");
   for (level = 1;
 	((prefs.format_type2 == FORMAT_TIFF_PYRAMID)
-		&& w>=prefs.min_size[0] && h>=prefs.min_size[1])
+		&& (w>=prefs.min_size[0] || h>=prefs.min_size[1]))
 	|| level<2;
 	level++, w/=2,h/=2)
     QPRINTF(OUTPUT, "%s: %6dx%-6d  %-2d bits  gamma: x%4.2f  compression: %s \n",
