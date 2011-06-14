@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		14/06/2011
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -30,7 +30,7 @@
 #ifndef HAVE_CONFIG_H
 #define		VERSION		"2.x"
 #define		DATE		"2010-x-x"
-#define		THREADS_NMAX	16		/* max. number of threads */
+#define		THREADS_NMAX	32		/* max. number of threads */
 #endif
 
 /*------------------------ what, who, when and where ------------------------*/
@@ -38,7 +38,7 @@
 #define         BANNER          "STIFF"
 #define		MYVERSION	VERSION
 #define         EXECUTABLE      "stiff"
-#define         COPYRIGHT       "2010 IAP/CNRS/UPMC"
+#define         COPYRIGHT       "2010,2011 IAP/CNRS/UPMC"
 #define		DISCLAIMER	BANNER " comes with ABSOLUTELY NO WARRANTY\n" \
 		"You may redistribute copies of " BANNER "\n" \
 		"under the terms of the GNU General Public License."
