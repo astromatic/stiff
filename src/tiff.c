@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		16/03/2012
+*	Last modified:		19/03/2012
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -48,7 +48,8 @@ int	tiff_compflag[] = {COMPRESSION_NONE, COMPRESSION_LZW, COMPRESSION_JPEG,
 
 /****** create_tiff ***********************************************************
 PROTO	imagestruct *create_tiff(char *filename, int width, int height,
-			int nchan, int bpp, int tilesize, int big_type,
+			int nchan, int bpp, int tilesize, float *minvalue,
+			float *maxvalue, int big_type,
 			int compress_type, float compress_quality,
 			char *copyright, char *description)
 PURPOSE	Create a TIFF image (write a TIFF header and return an imagestruct).
@@ -64,10 +65,11 @@ INPUT	Output filename,
 OUTPUT	Pointer to an imagestruct.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	01/02/2010
+VERSION	19/03/2012
  ***/
 imagestruct *create_tiff(char *filename, int width, int height,
-			int nchan, int bpp, int tilesize, int big_type,
+			int nchan, int bpp, int tilesize, float *minvalue,
+			float *maxvalue, int big_type,
 			int compress_type, int compress_quality,
 			char *copyright, char *description)
   {
@@ -106,8 +108,8 @@ imagestruct *create_tiff(char *filename, int width, int height,
   strcpy(image->filename, filename);
   image->tiff = tiff;
 
-  create_tiffdir(image, width, height, nchan, bpp, tilesize,
-	compress_type, compress_quality, copyright, description);
+  create_tiffdir(image, width, height, nchan, bpp, tilesize, minvalue,
+	maxvalue, compress_type, compress_quality, copyright, description);
 
   return image;
   }
@@ -115,7 +117,8 @@ imagestruct *create_tiff(char *filename, int width, int height,
 
 /****** create_tiffdir ***********************************************************
 PROTO	void create_tiffdir(imagestruct *image, int width, int height,
-			int nchan, int bpp, int tilesize,
+			int nchan, int bpp, int tilesize, float *minvalue,
+			float *maxvalue,
 			int compress_type, int compress_quality,
 			char *copyright,
 			char *description)
@@ -132,10 +135,10 @@ INPUT	image structure pointer,
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	16/03/2012
+VERSION	19/03/2012
  ***/
 void	create_tiffdir(imagestruct *image, int width, int height,
-			int nchan, int bpp, int tilesize,
+			int nchan, int bpp, int tilesize, float *minvalue, float *maxvalue,
 			int compress_type, int compress_quality,
 			char *copyright,
 			char *description)
@@ -175,8 +178,8 @@ void	create_tiffdir(imagestruct *image, int width, int height,
   if (bpp<0)
     {
     TIFFSetField(tiff, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
-    /*TIFFSetField(tiff, TIFFTAG_MINSAMPLEVALUE, (short)(field->min));
-    TIFFSetField(tiff, TIFFTAG_MAXSAMPLEVALUE, (short)(field->max));*/
+    TIFFSetField(tiff, TIFFTAG_SMINSAMPLEVALUE, *minvalue);
+    TIFFSetField(tiff, TIFFTAG_SMAXSAMPLEVALUE, *maxvalue);
     }
   TIFFSetField(tiff, TIFFTAG_COMPRESSION, tiff_compflag[compress_type]);
   if (tiff_compflag[compress_type] == COMPRESSION_JPEG)

@@ -77,7 +77,7 @@ INPUT	Output filename,
 OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	16/03/2012
+VERSION	19/03/2012
  ***/
 void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   {
@@ -87,7 +87,7 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
    unsigned char	*extrapix;
    char			*description;
    float		*fbuf[3],
-			*fbuft0, *fbuft, *fsbuf;
+			*fbuft0, *fbuft, *fsbuf, *minvalue, *maxvalue;
    PIXTYPE		*ibuf,*ibuft,
 			fpix;
    long			offset;
@@ -106,6 +106,9 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   QMALLOC(tab, tabstruct *, nchan);
   fwidth = fheight = 0;
   description = NULL;	/* to avoid gcc -Wall warnings */
+
+  QMALLOC(minvalue, float, nchan);
+  QMALLOC(maxvalue, float, nchan);
 
   for (a=0; a<nchan; a++)
     {
@@ -131,6 +134,8 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
       }
     else
       fheight = tab[a]->naxisn[1];
+    minvalue[a] = field[a]->min;
+    maxvalue[a] = field[a]->max;
     }
 
   flipxflag = (prefs.flip_type == FLIP_X) || (prefs.flip_type == FLIP_XY);
@@ -147,7 +152,7 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
     {
     case FORMAT_TIFF:
       image = create_tiff(filename, width, height, nchan, prefs.bpp, 0,
-		prefs.bigtiff_type,
+		minvalue, maxvalue, prefs.bigtiff_type,
 		prefs.compress_type, prefs.compress_quality,
 		prefs.copyright,
 		prefs.header_flag? (description
@@ -376,7 +381,7 @@ INPUT	File name,
 OUTPUT	Number of pyramid levels.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	16/03/2012
+VERSION	19/03/2012
  ***/
 int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   {
@@ -385,7 +390,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
    tabstruct		**tab;
    float		*data[3],
 			*datat,*datatt, *datao, *fbuf, *fbuft,*fbuftt, *fsbuf,
-			fpix, fac;
+			*minvalue, *maxvalue, fpix, fac;
    OFF_T		imoffset;
    size_t		ndata,ndatao;
    unsigned char	*pix;
@@ -408,6 +413,10 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   QMALLOC(cat, catstruct *, nchan);
   QMALLOC(tab, tabstruct *, nchan);
   fwidth = fheight = 0;
+
+  QMALLOC(minvalue, float, nchan);
+  QMALLOC(maxvalue, float, nchan);
+
   for (a=0; a<nchan; a++)
     {
     swapname[a] = NULL;
@@ -434,6 +443,8 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
     else
       fheight = tab[a]->naxisn[1];
     QFSEEK(cat[a]->file, tab[a]->bodypos, SEEK_SET, cat[a]->filename);
+    minvalue[a] = field[a]->min;
+    maxvalue[a] = field[a]->max;
     }
 
   set_maxdataram(prefs.mem_max);
@@ -455,7 +466,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   binx = biny = 1;
 
   image = create_tiff(filename, width, height, nchan, prefs.bpp, tilesize,
-	prefs.bigtiff_type, prefs.compress_type, prefs.compress_quality,
+	minvalue, maxvalue, prefs.bigtiff_type, prefs.compress_type, prefs.compress_quality,
 	prefs.copyright,
 	prefs.header_flag? (description
 		= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
@@ -520,7 +531,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
       if (prefs.header_flag)
         free(description);
       create_tiffdir(image, width, height, nchan, prefs.bpp, tilesize,
-		prefs.compress_type, prefs.compress_quality,
+		minvalue, maxvalue, prefs.compress_type, prefs.compress_quality,
 		prefs.copyright,
 		prefs.header_flag? (description
 			= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,

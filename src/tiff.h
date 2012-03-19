@@ -44,7 +44,8 @@
 
 /*------------------------------- functions ---------------------------------*/
 extern imagestruct	*create_tiff(char *filename, int width, int height,
-				int nchan, int bpp, int tilesize, int big_type,
+				int nchan, int bpp, int tilesize, float *minvalue,
+				float *maxvalue, int big_type,
 				int compress_type, int compress_quality,
 				char *copyright, char *description);
 
@@ -53,6 +54,7 @@ extern int		write_tifflines(imagestruct *image),
 
 extern void		create_tiffdir(imagestruct *image, int width,
 				int height, int bpp, int nchan, int tilesize,
+				float *minvalue, float *maxvalue,
 				int compress_type, int compress_quality,
 				char *copyright, char *description),
 			end_tiff(imagestruct *image);
