@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		16/03/2012
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -60,6 +60,7 @@ typedef struct structimage
    int			nchan;			/* Number of channels */
    int			bpp;			/* Number of bits per pixel */
    int			bypp;			/* Number of bytes per pixel */
+   int			fflag;			/* Float output flag */
    int			tilesize;		/* Tile size (or 0 for strips)*/
    int			ntilesx;		/* Number of tiles along x */
    int			ntilesy;		/* Number of tiles along y */
@@ -72,7 +73,7 @@ typedef struct structimage
 /*------------------------------- functions ---------------------------------*/
 extern void	data_to_pix(fieldstruct **field, float **data, size_t offset,
 			unsigned char *outpix, int npix, int nchan, int bypp,
-			float *buffer),
+			int fflag, float *buffer),
 		image_convert_single(char *filename, fieldstruct **field,
 			int nchan),
 		make_imastats(fieldstruct *field,

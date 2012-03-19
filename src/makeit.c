@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		19/03/2012
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -60,9 +60,9 @@ void	makeit(void)
    fieldstruct		**field;
    PIXTYPE		grey;
    float		ver;
-   char			verstr[MAXCHAR],
+   char			verstr[MAXCHAR], imtype[MAXCHAR],
 			*rfilename;
-   int			a,w,h, narg, level;
+   int			a,w,h, narg, nbit, level;
 
 /* Install error logging */
 //  error_installfunc(write_error);
@@ -144,18 +144,24 @@ void	makeit(void)
 
   prefs.nlines = (double)h;
   prefs.npix = (double)w*(double)h;
-
+  
+  nbit = abs(prefs.bpp);
+  if (prefs.bpp>0)
+    sprintf(imtype,"integers");
+  else
+    sprintf(imtype,"floats");
   QPRINTF(OUTPUT, "\n----- Output:\n");
   for (level = 1;
 	((prefs.format_type2 == FORMAT_TIFF_PYRAMID)
 		&& (w>=prefs.min_size[0] || h>=prefs.min_size[1]))
 	|| level<2;
 	level++, w/=2,h/=2)
-    QPRINTF(OUTPUT, "%s: %6dx%-6d  %-2d bits  gamma: x%4.2f  compression: %s \n",
+    QPRINTF(OUTPUT, "%s: %6dx%-6d  %-2d bits (%s) gamma: x%4.2f  compression: %s \n",
         rfilename,
 	w,
 	h,
-	narg*prefs.bpp,
+	narg*nbit,
+        imtype,
 	prefs.gamma_fac,
 	key[findkeys("COMPRESSION_TYPE", keylist,
 		FIND_STRICT)].keylist[prefs.compress_type]);

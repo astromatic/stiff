@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		21/02/2011
+*	Last modified:		19/03/2012
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -63,7 +63,7 @@
    unsigned char	*pthread_pix;
    int			*proc,
 			pthread_nbuflines, pthread_bufline, pthread_width,
-			pthread_nchan, pthread_bypp,
+			pthread_nchan, pthread_bypp, pthread_fflag,
 			pthread_nproc, pthread_endflag;
 
 #endif
@@ -77,7 +77,7 @@ INPUT	Output filename,
 OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	08/02/2010
+VERSION	16/03/2012
  ***/
 void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   {
@@ -201,6 +201,7 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   pthread_width = width;
   pthread_nchan = nchan;
   pthread_bypp = image->bypp;
+  pthread_fflag = image->fflag;
   pthread_endflag = 0;
 /* Install the signal-catching routines for temporary file cleanup */
   install_cleanup(pthread_cancel_threads);
@@ -306,7 +307,7 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
 /*---- ( Writing thread starts processing the current buffer data here ) */
 #else
       data_to_pix(field, fbuf, 0, image->buf, width*ntlines, nchan, image->bypp,
-		fsbuf);
+		image->fflag, fsbuf);
       switch(prefs.format_type2)
         {
         case FORMAT_TIFF:
@@ -375,7 +376,7 @@ INPUT	File name,
 OUTPUT	Number of pyramid levels.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	21/02/2011
+VERSION	16/03/2012
  ***/
 int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   {
@@ -488,6 +489,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   pthread_data = data;
   pthread_nchan = nchan;
   pthread_bypp = bypp;
+  pthread_fflag = image->fflag;
   pthread_endflag = 0;
 /* Install the signal-catching routines for temporary file cleanup */
   install_cleanup(pthread_cancel_threads);
@@ -659,7 +661,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
       threads_gate_sync(pthread_startwgate);
 /*---- ( Writing thread starts processing the current buffer data here ) */
 #else
-      data_to_pix(field, data, imoffset, pix, tilesizey*width,nchan,bypp,fsbuf);
+      data_to_pix(field, data, imoffset, pix, tilesizey*width,nchan,bypp,image->fflag,fsbuf);
       raster_to_tiles(pix, image->buf, width, tilesizey, tilesize, nchan*bypp);
       write_tifftiles(image);
 #endif
@@ -712,7 +714,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
 /****** data_to_pix ***********************************************************
 PROTO	void data_to_pix(fieldstruct **field, float **data,
 		unsigned char *outpix, int npix, int nchan, int bypp,
-		float *buffer)
+		int fflag, float *buffer)
 PURPOSE	Read an array of data and convert it to colour pixel values.
 INPUT	Array of field pointers,
 	array of data pointers,
@@ -721,32 +723,36 @@ INPUT	Array of field pointers,
 	number of pixels,
 	number of channels,
 	number of bytes per output channel,
+        float output flag,
 	luminance buffer.
 OUTPUT	-..
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	01/02/2010
+VERSION	19/03/2012
  ***/
 void	data_to_pix(fieldstruct **field, float **data, size_t offset,
 		unsigned char *outpix, int npix, int nchan, int bypp,
-		float *buffer)
+		int fflag, float *buffer)
   {
    float		*datap[3],
 			dataval[3], fmin[3], scale[3],
-			*buffert, *datat,
+			*buffert, *datat, *outfpixt,
 			invgammaf, coloursat, fac, sc, fm, fpix,fspix,
 			fmax, pmax, pblack,pwhite,pscale,
 			invg,goff,gsum,glin,gthresh;
+   /* unsigned int		*outipixt; */
    unsigned short	*outspixt;
    unsigned char	*outbpixt;
-   int			a,p, colflag, negflag, sflag;
+   int			a,p, colflag, negflag, /*iflag,*/ sflag;
 
   colflag = (nchan==3);
   coloursat = prefs.colour_sat/3.0;
 
+
 /* Adjust luminosity and contrast and sum fluxes from the different channels */
   fac = 1.0/nchan;
   sflag = (bypp>1);
+  /* iflag = (bypp>2); unsigned integer flag */
   invgammaf = 1.0/prefs.gamma_fac;
 
   memset(buffer, 0, npix*sizeof(float));
@@ -796,68 +802,99 @@ void	data_to_pix(fieldstruct **field, float **data, size_t offset,
       error(EXIT_FAILURE, "*Internal Error*: unknown gamma correction in ",
 	"data_to_pix()");
     }
-
   pscale = (pwhite-pblack);
   pblack += 0.5;	/* for symmetric round-off */
 
-  for (a=0; a<nchan; a++)
-    {
-    fm = fmin[a] = field[a]->min;
-    sc = scale[a] = 1.0/(field[a]->max-fm);
-    datat = datap[a] = data[a]+offset;
-    buffert = buffer;
-    for (p=npix; p--;)
-      {
-      if ((fpix = sc*(*(datat++) - fm)) < 0.0)
-        fpix = 0.0;
-      *(buffert++) += fpix*fac;
-      }
-    }
-
-  buffert = buffer;
-  if (sflag)
+  if (fflag)
     {
     outbpixt = NULL;	/* Avoid gcc -Wall warnings */
-    outspixt = (unsigned short *)outpix;
+    outspixt = NULL;
+    //outipixt  = NULL;
+    outfpixt = (float *)outpix;
+    for (p=0; p<npix; p++)
+      for (a=0; a<nchan; a++)
+        *(outfpixt++) = data[a][p+offset];
     }
   else
     {
-    outbpixt = outpix;
-    outspixt = NULL;	/* Avoid gcc -Wall warnings */
-    }
-  negflag = prefs.neg_flag;
-  for (p=0; p<npix; p++)
-    {
-    fspix = *(buffert++);
-    fmax = powf(fspix, 1.0 - invgammaf);
-    for (a=0; a<nchan; a++)
-      if ((dataval[a] = scale[a]*(datap[a][p]-fmin[a])) >= fmax)
-        dataval[a] = fmax;
-
     for (a=0; a<nchan; a++)
       {
-      fpix = dataval[a];
-      if (colflag)
+      fm = fmin[a] = field[a]->min;
+      sc = scale[a] = 1.0/(field[a]->max-fm);
+      datat = datap[a] = data[a]+offset;
+      buffert = buffer;
+      for (p=npix; p--;)
         {
-        fpix = fspix + coloursat*(2.0*fpix-dataval[(a+1)%3]-dataval[(a+2)%3]);
-        if (fpix<0.0)
+        if ((fpix = sc*(*(datat++) - fm)) < 0.0)
           fpix = 0.0;
+        *(buffert++) += fpix*fac;
         }
-      fpix = (colflag && fspix > 1e-15)? fpix/fspix : 1.0;
-      fpix *= powf(fspix, invgammaf);
- /*---- Video gamma correction */
-      fpix = pscale*(fpix<gthresh? glin*fpix : gsum *powf(fpix, invg)-goff) + pblack;
-      if (fpix>=pmax)
-        fpix = pmax;
-      if (negflag)
-        fpix = pmax - fpix;
-      if (sflag)
-        *(outspixt++) = (unsigned short)fpix;
+      }
+
+    if (sflag)
+      {
+      /*if (iflag)
+        {
+        outbpixt = NULL;	/* Avoid gcc -Wall warnings */
+      /*  outspixt = NULL;
+        outipixt  = (unsigned int *)outpix;;
+        outfpixt = NULL;    
+        }
       else
-        *(outbpixt++) = (unsigned char)fpix;
+        { */
+      outbpixt = NULL;	/* Avoid gcc -Wall warnings */
+      outspixt = (unsigned short *)outpix;
+      //outipixt  = NULL;
+      outfpixt = NULL;    
+        //}
+      }
+    else
+      {
+      outbpixt = outpix;
+      outspixt = NULL;	/* Avoid gcc -Wall warnings */
+      //outipixt  = NULL;
+      outfpixt = NULL;    
+      }
+
+    negflag = prefs.neg_flag;
+    buffert = buffer;
+    for (p=0; p<npix; p++)
+      {
+      fspix = *(buffert++);
+      fmax = powf(fspix, 1.0 - invgammaf);
+      for (a=0; a<nchan; a++)
+        if ((dataval[a] = scale[a]*(datap[a][p]-fmin[a])) >= fmax)
+          dataval[a] = fmax;
+
+      for (a=0; a<nchan; a++)
+        {
+        fpix = dataval[a];
+        if (colflag)
+          {
+          fpix = fspix + coloursat*(2.0*fpix-dataval[(a+1)%3]-dataval[(a+2)%3]);
+          if (fpix<0.0)
+            fpix = 0.0;
+          }
+        fpix = (colflag && fspix > 1e-15)? fpix/fspix : 1.0;
+        fpix *= powf(fspix, invgammaf);
+ /*---- Video gamma correction */
+        fpix = pscale*(fpix<gthresh? glin*fpix : gsum *powf(fpix, invg)-goff) + pblack;
+        if (fpix>=pmax)
+          fpix = pmax;
+        if (negflag)
+          fpix = pmax - fpix;
+        if (sflag)
+          /*{
+          if (iflag)
+            *(outipixt++) = (unsigned int)fpix;
+          else*/
+          *(outspixt++) = (unsigned short)fpix;
+          //}
+        else
+          *(outbpixt++) = (unsigned char)fpix;
+        }
       }
     }
-
   return;
   }
 
@@ -917,7 +954,7 @@ INPUT   Pointer to the thread number.
 OUTPUT  -.
 NOTES   -.
 AUTHOR  E. Bertin (IAP)
-VERSION 02/01/2010
+VERSION 16/03/2012
  ***/
 void    *pthread_data_to_pix(void *arg)
   {
@@ -940,6 +977,7 @@ void    *pthread_data_to_pix(void *arg)
 		pthread_width,
 		pthread_nchan,
 		pthread_bypp,
+                pthread_fflag,
 		pthread_fsbuf[proc]);
       }
     else

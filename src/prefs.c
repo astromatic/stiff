@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		19/03/2012
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -500,8 +500,12 @@ void	useprefs(void)
    char	*str;
    int	i;
 
-  if (prefs.bpp>8)
-    prefs.bpp = 16;
+  if (prefs.bpp != -32 && prefs.bpp != 8 && prefs.bpp != 16)
+    {
+    prefs.bpp = 8;
+    warning("BITS_PER_CHANNEL value not supported: ",
+        "BITS_PER_CHANNEL set to 8");
+    }
 
   prefs.format_type2 = prefs.format_type;
   if (prefs.format_type == FORMAT_AUTO)
@@ -540,5 +544,3 @@ void	useprefs(void)
 
   return;
   }
-
-

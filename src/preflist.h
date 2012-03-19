@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		16/03/2012
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -58,7 +58,7 @@ pkeystruct key[] =
    {"AUTO","NEVER","ALWAYS",""}},
   {"BINNING", P_INTLIST, prefs.bin_size, 1, 32768, 0.0,0.0,
    {""}, 1, 2, &prefs.nbin_size},
-  {"BITS_PER_CHANNEL", P_INT, &prefs.bpp, 8, 16},
+  {"BITS_PER_CHANNEL", P_INT, &prefs.bpp, -32, 16},
   {"COMPRESSION_QUALITY", P_INT, &prefs.compress_quality, 0,100},
   {"COMPRESSION_TYPE", P_KEY, &prefs.compress_type, 0,0, 0.0,0.0,
    {"NONE", "LZW", "JPEG", "DEFLATE", "ADOBE-DEFLATE", ""}},
@@ -121,7 +121,7 @@ char *default_prefs[] =
 "OUTFILE_NAME           stiff.tif       # Name of the output file",
 "IMAGE_TYPE             AUTO            # Output image format: AUTO, TIFF,",
 "                                       # or TIFF-PYRAMID",
-"BITS_PER_CHANNEL       8               # 8 or 16",
+"BITS_PER_CHANNEL       8               # 8, 16 for int, -32 for float",
 "*BIGTIFF_TYPE           AUTO            # Use BigTIFF? NEVER,ALWAYS or AUTO",
 "*COMPRESSION_TYPE       LZW             # NONE,LZW,JPEG,DEFLATE or ADOBE-DEFLATE",
 "*COMPRESSION_QUALITY    90              # JPEG compression quality (%)",

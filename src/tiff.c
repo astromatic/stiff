@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		16/03/2012
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -82,7 +82,7 @@ imagestruct *create_tiff(char *filename, int width, int height,
     if (big_type==BIGTIFF_ALWAYS)
       strcpy(flagstr, "w8");
     else if ((big_type==BIGTIFF_AUTO)
-	&& ((size_t)width*(size_t)height*(size_t)(nchan*bpp/8))/(size_t)16
+	&& ((size_t)width*(size_t)height*(size_t)(nchan*abs(bpp)/8))/(size_t)16
 	>=134217728)
       {
       warning("Very large TIFF file: ", "switching to BigTIFF format");
@@ -94,7 +94,7 @@ imagestruct *create_tiff(char *filename, int width, int height,
     if (big_type==BIGTIFF_ALWAYS)
       warning("This version of libtiff does not support ", "BigTIFF format");
     else if ((big_type==BIGTIFF_AUTO)
-	&& ((size_t)width*(size_t)height*(size_t)(nchan*bpp/8))/(size_t)16
+	&& ((size_t)width*(size_t)height*(size_t)(nchan*abs(bpp)/8))/(size_t)16
 	>=134217728)
       warning("Very large TIFF file, ",
 	"but no BigTIFF support in this version of libtiff");
@@ -132,7 +132,7 @@ INPUT	image structure pointer,
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	13/01/2010
+VERSION	16/03/2012
  ***/
 void	create_tiffdir(imagestruct *image, int width, int height,
 			int nchan, int bpp, int tilesize,
@@ -163,14 +163,21 @@ void	create_tiffdir(imagestruct *image, int width, int height,
     image->width = width;
     image->height = height;
     image->nchan = nchan;
-    image->bpp = bpp;
-    image->bypp = bpp/8;
+    image->fflag = (bpp<0);
+    image->bpp = abs(bpp);
+    image->bypp = abs(bpp/8);
     }
 
   TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width);
   TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height);
   TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, nchan);
-  TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, bpp);
+  TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, abs(bpp));
+  if (bpp<0)
+    {
+    TIFFSetField(tiff, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+    /*TIFFSetField(tiff, TIFFTAG_MINSAMPLEVALUE, (short)(field->min));
+    TIFFSetField(tiff, TIFFTAG_MAXSAMPLEVALUE, (short)(field->max));*/
+    }
   TIFFSetField(tiff, TIFFTAG_COMPRESSION, tiff_compflag[compress_type]);
   if (tiff_compflag[compress_type] == COMPRESSION_JPEG)
     {
@@ -302,7 +309,8 @@ int	write_tifftiles(imagestruct *image)
   buft = image->buf;
   for (x=0; x<nx; x++)
     {
-    if (TIFFWriteTile(image->tiff, buft,
+printf("%g \n", ((float *)buft)[500]); 
+   if (TIFFWriteTile(image->tiff, buft,
 	x*image->tilesize, image->tiley*image->tilesize, 0, 0) < 0)
       return RETURN_ERROR;
     buft += npix;
@@ -332,4 +340,3 @@ void	end_tiff(imagestruct *image)
 
   return;
   }
-
