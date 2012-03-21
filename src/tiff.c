@@ -312,7 +312,6 @@ int	write_tifftiles(imagestruct *image)
   buft = image->buf;
   for (x=0; x<nx; x++)
     {
-printf("%g \n", ((float *)buft)[500]); 
    if (TIFFWriteTile(image->tiff, buft,
 	x*image->tilesize, image->tiley*image->tilesize, 0, 0) < 0)
       return RETURN_ERROR;
