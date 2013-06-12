@@ -100,6 +100,7 @@ imagestruct *create_tiff(char *filename, int width, int height,
 	>=134217728)
       warning("Very large TIFF file, ",
 	"but no BigTIFF support in this version of libtiff");
+
     }
 
   if ((tiff = TIFFOpen(filename, flagstr)) == NULL)

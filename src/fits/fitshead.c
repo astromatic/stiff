@@ -7,7 +7,7 @@
 *
 *	This file part of:	AstrOmatic FITS/LDAC library
 *
-*	Copyright:		(C) 1995-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 1995-2012 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -23,7 +23,7 @@
 *	along with AstrOmatic software.
 *	If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		09/10/2010
+*	Last modified:		29/08/2012
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -101,7 +101,7 @@ INPUT	pointer to catstruct.
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	25/09/2004
+VERSION	03/06/2012
  ***/
 void	readbasic_head(tabstruct *tab)
 
@@ -114,15 +114,35 @@ void	readbasic_head(tabstruct *tab)
 
   filename = (tab->cat? tab->cat->filename : strcpy(name, "internal header"));
 
-  if (fitsread(tab->headbuf, "BITPIX  ", &tab->bitpix, H_INT, T_LONG)
+// CFITSIO
+  char NAXIS_KEYWORD[14];
+  char BITPIX_KEYWORD[14];
+
+  if (fitsread(tab->headbuf, "ZIMAGE  ", str, H_STRING, T_STRING) == RETURN_OK) {
+
+          tab->isTileCompressed = 1;
+
+          strcpy(NAXIS_KEYWORD, "ZNAXIS  ");
+          strcpy(BITPIX_KEYWORD, "ZBITPIX ");
+  }
+  else {
+          tab->isTileCompressed = 0;
+
+          strcpy(NAXIS_KEYWORD, "NAXIS   ");
+          strcpy(BITPIX_KEYWORD, "BITPIX  ");
+  }
+
+  if (fitsread(tab->headbuf, BITPIX_KEYWORD, &tab->bitpix, H_INT, T_LONG)
 	==RETURN_ERROR)
     error(EXIT_FAILURE, "*Error*: Corrupted FITS header in ", filename);
 
   tab->bytepix = tab->bitpix>0?(tab->bitpix/8):(-tab->bitpix/8);
 
-  if (fitsread(tab->headbuf, "NAXIS   ", &tab->naxis, H_INT, T_LONG)
-	==RETURN_ERROR)
+  if (fitsread(tab->headbuf, NAXIS_KEYWORD, &tab->naxis, H_INT, T_LONG)
+                  ==RETURN_ERROR) {
     error(EXIT_FAILURE, "*Error*: Corrupted FITS header in ", filename);
+  }
+
 
   tabsize = 0;
   if (tab->naxis>0)
@@ -133,7 +153,11 @@ void	readbasic_head(tabstruct *tab)
     tabsize = 1;
     for (i=0; i<tab->naxis && i<999; i++)
       {
-      sprintf(key,"NAXIS%-3d", i+1);
+       // CFITSIO
+       if (tab->isTileCompressed)
+               sprintf(key,"ZNAXIS%-2d", (i+1));
+       else
+               sprintf(key,"NAXIS%-3d", (i+1));
       if (fitsread(tab->headbuf, key, &tab->naxisn[i], H_INT, T_LONG)
 		==RETURN_ERROR)
         error(EXIT_FAILURE, "*Error*: incoherent FITS header in ", filename);
@@ -169,7 +193,7 @@ void	readbasic_head(tabstruct *tab)
 	1 : 0;
 
 /* Custom basic FITS parameters */
-  tab->bitsgn = 1;
+  tab->bitsgn = (tab->bitpix==BP_BYTE) ? 0 : 1;
   fitsread(tab->headbuf, "BITSGN  ", &tab->bitsgn, H_INT, T_LONG);
 
   if (fitsread(tab->headbuf, "IMAGECOD", str, H_STRING, T_STRING)==RETURN_OK)
@@ -284,7 +308,9 @@ int	readbintabparam_head(tabstruct *tab)
         key->htype = H_STRING;
         break;
       default:
-        error(EXIT_FAILURE, "*Error*: Unknown TFORM in ", cat->filename);
+        // CFITSIO TODO dodgy
+    	key->ttype = T_FLOAT;
+        //error(EXIT_FAILURE, "*Error*: Unknown TFORM in ", cat->filename);
       }
 
 /*--handle the special case of multimensional arrays*/
@@ -479,8 +505,8 @@ PURPOSE	Update a FITS header to make it "primary" (not extension)
 INPUT	Table structure.
 OUTPUT	RETURN_OK if tab header was already primary, or RETURN_ERROR otherwise.
 NOTES	-.
-AUTHOR	E. Bertin (IAP & Leiden observatory) C. Marmo (IAP)
-VERSION	11/06/2007
+AUTHOR	E. Bertin (IAP) C. Marmo (IAP)
+VERSION	30/08/2011
  ***/
 int	prim_head(tabstruct *tab)
 
@@ -489,12 +515,13 @@ int	prim_head(tabstruct *tab)
     return RETURN_ERROR;
   if (!strncmp(tab->headbuf, "XTENSION",8))
       {
-      strncpy(tab->headbuf, "SIMPLE  =                    T  "
+      strncpy(tab->headbuf, "SIMPLE  =                    T "
 	"/ This is a FITS file                            ", 80);
-/* fitsverify 4.13 (CFITSIO V3.002) return an error
-   if PCOUNT and GCOUNT are in a primary header (23/05/2007)*/
       removekeywordfrom_head(tab, "PCOUNT");      
       removekeywordfrom_head(tab, "GCOUNT");      
+      removekeywordfrom_head(tab, "TFIELDS");      
+      removekeywordfrom_head(tab, "EXTNAME");      
+      *tab->extname = '\0';
       return RETURN_ERROR;
       }
 
@@ -670,8 +697,8 @@ PURPOSE	Return the size of a binary-table field from its ``TFORM''.
 INPUT	TFORM string (see the FITS documentation).
 OUTPUT	size in bytes, or RETURN_ERROR if the TFORM is unknown.
 NOTES	-.
-AUTHOR	E. Bertin (IAP & Leiden observatory)
-VERSION	28/10/2009
+AUTHOR	E. Bertin (IAP)
+VERSION	10/11/2010
  ***/
 int	tsizeof(char *str)
 
@@ -680,7 +707,8 @@ int	tsizeof(char *str)
    char	*str2;
 
   str2 = str;
-  if (!(n = strtol(str, &str2, 10)))
+  n = strtol(str, &str2, 10);
+  if (str2==str)
     n = 1;
 
   switch ((int)*str2)
@@ -703,8 +731,8 @@ PURPOSE	Give the ``t_type'' of a binary-table field from its ``TFORM''.
 INPUT	TFORM string (see the FITS documentation).
 OUTPUT	size in bytes, or RETURN_ERROR if the TFORM is unknown.
 NOTES	-.
-AUTHOR	E. Bertin (IAP & Leiden observatory)
-VERSION	28/10/2009
+AUTHOR	E. Bertin (IAP)
+VERSION	29/08/2012
  ***/
 t_type	ttypeof(char *str)
 

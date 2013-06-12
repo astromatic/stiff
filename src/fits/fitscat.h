@@ -7,7 +7,7 @@
 *
 *	This file part of:	AstrOmatic FITS/LDAC library
 *
-*	Copyright:		(C) 1995-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 1995-2012 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -23,16 +23,21 @@
 *	along with AstrOmatic software.
 *	If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		09/10/2010
+*	Last modified:		27/02/2013
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 #ifndef _FITSCAT_H_
 #define _FITSCAT_H_
 
+#include <stdio.h>
+
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
+
+// CFITSIO
+#include "fitsio.h"
 
 #define	MAXCHARS	256	/* max. number of characters */
 #define WARNING_NMAX	1000	/* max. number of recorded warnings */
@@ -85,7 +90,7 @@ typedef enum		{T_BYTE, T_SHORT, T_LONG, T_LONGLONG,
 			T_FLOAT, T_DOUBLE, T_STRING}
 				t_type;		/* Type of data */
 typedef enum		{WRITE_ONLY, READ_ONLY}
-				access_type;	/* Type of access */
+				access_type_t;	/* Type of access */
 typedef enum		{SHOW_ASCII, SHOW_SKYCAT}
 				output_type;    /* Type of output */
 
@@ -100,17 +105,16 @@ typedef	size_t				KINGSIZE_T;/* better than nothing */
 typedef union {unsigned int l[2];}	ULONGLONG;
 #endif
 #ifdef HAVE_LONG_LONG_INT
-typedef	long long			KINGLONG;	/* for large sizes */
-typedef long long			LONGLONG;
+typedef long long			SLONGLONG;
 #else
-typedef	long				KINGLONG;/* better than nothing */
-typedef union {int l[2];}		LONGLONG;
+typedef union {int l[2];}		SLONGLONG;
 #endif
 
-#if _FILE_OFFSET_BITS
-#define OFF_T	off_t
+// CFITSIO changed OFF_T to OFF_T2 due to clash with cfitsio lib
+#if defined(_FILE_OFFSET_BITS) && !defined(OFF_T2)
+#define OFF_T2	off_t
 #else
-#define OFF_T	KINGLONG
+#define OFF_T2	long
 #endif
 
 /*------------------------------- constants ---------------------------------*/
@@ -149,7 +153,7 @@ typedef struct structcat
   FILE		*file;			/* pointer to the file structure */
   struct structtab *tab;		/* pointer to the first table */
   int		ntab;			/* number of tables included */
-  access_type	access_type;		/* READ_ONLY or WRITE_ONLY */
+  access_type_t	access_type;		/* READ_ONLY or WRITE_ONLY */
   }		catstruct;
 
 /*-------------------------------- table  ----------------------------------*/
@@ -180,8 +184,8 @@ typedef struct structtab
   char		*headbuf;		/* buffer containing the header */
   int		headnblock;		/* number of FITS blocks */
   char		*bodybuf;		/* buffer containing the body */
-  OFF_T		bodypos;		/* position of the body in the file */
-  OFF_T		headpos;		/* position of the head in the file */
+  OFF_T2		bodypos;		/* position of the body in the file */
+  OFF_T2		headpos;		/* position of the head in the file */
   struct structcat *cat;		/* (original) parent catalog */
   struct structtab *prevtab, *nexttab;	/* previous and next tab in chain */
   int		seg;			/* segment position */
@@ -191,6 +195,13 @@ typedef struct structtab
   int		swapflag;		/* mapped to a swap file ? */
   char		swapname[MAXCHARS];	/* name of the swapfile */
   unsigned int	bodysum;		/* Checksum of the FITS body */
+
+  // CFITSIO
+  fitsfile *infptr;                     /* a cfitsio pointer to the file */
+  int hdunum;                           /* FITS HDU number for this 'table' */
+  int isTileCompressed;                 /* is this a tile compressed image?  */
+  long currentElement;                  /* tracks the current image pixel */
+
   }		tabstruct;
 
 
@@ -247,6 +258,7 @@ extern void	add_cleanupfilename(char *filename),
 		voprint_obj(FILE *stream, tabstruct *tab),
 		warning(char *, char *),
 		write_body(tabstruct *tab, PIXTYPE *ptr, size_t size),
+		write_ibody(tabstruct *tab, FLAGTYPE *ptr, size_t size),
 		write_checksum(tabstruct *tab);
 
 extern char	*tdisptoprintf(char *tdisp, char *str),
@@ -292,7 +304,7 @@ extern int	about_cat(catstruct *cat, FILE *stream),
 		inherit_cat(catstruct *catin, catstruct *catout),
 		init_cat(catstruct *cat),
 		map_cat(catstruct *cat),
-		open_cat(catstruct *cat, access_type at),
+		open_cat(catstruct *cat, access_type_t at),
 		pad_tab(catstruct *cat, KINGSIZE_T size),
 		prim_head(tabstruct *tab),
 		readbintabparam_head(tabstruct *tab),
@@ -321,6 +333,9 @@ extern int	about_cat(catstruct *cat, FILE *stream),
 
 extern PIXTYPE	*alloc_body(tabstruct *tab,
 			void (*func)(PIXTYPE *ptr, int npix));
+
+extern FLAGTYPE	*alloc_ibody(tabstruct *tab,
+			void (*func)(FLAGTYPE *ptr, int npix));
 
 extern t_type	ttypeof(char *str);
 

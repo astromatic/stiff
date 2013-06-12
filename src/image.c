@@ -112,10 +112,15 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
 
   for (a=0; a<nchan; a++)
     {
+
     if (!(cat[a]=field[a]->cat))
       return;
     if (!(tab[a]=field[a]->tab))
       return;
+
+    if (tab[a]->naxisn[1] ==1)
+    	tab[a] = tab[a]->nexttab;
+
     if (tab[a]->naxis<2)
       error(EXIT_FAILURE, "*Error*: not a 2D image in ", cat[a]->filename);
     if (fwidth)
@@ -124,8 +129,13 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
         error(EXIT_FAILURE, "*Error*: Image width doesn't match in ",
 		cat[a]->filename);
       }
-    else
-      fwidth = tab[a]->naxisn[0];
+
+
+    // CFITSIO
+    //else if (tab[a]->naxisn[1] != 1){
+    else{
+    fwidth = tab[a]->naxisn[0];
+    }
     if (fheight)
       {
       if (tab[a]->naxisn[1] != fheight)
@@ -226,9 +236,10 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
 #endif
 
 /* Position the input file(s) at the beginning of image */
-  for (a=0; a<nchan; a++)
+  for (a=0; a<nchan; a++) {
     QFSEEK(cat[a]->file, tab[a]->bodypos, SEEK_SET, cat[a]->filename);
-
+    cat[a]->tab->currentElement = 1; // CFITSIO
+  }
 /* Prepare the output file and position the pointer at the last line */
 /* We are going reverse (1st pixel is at top in TIFF, and at bottom in FITS) */
 
@@ -261,6 +272,7 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
         {
         imoffset = tab[a]->bodypos+(OFF_T)fwidth*my*tab[a]->bytepix;
         QFSEEK(cat[a]->file, imoffset, SEEK_SET, cat[a]->filename);
+        tab[a]->currentElement = (imoffset-tab[a]->bodypos)/tab[a]->bytepix; // CFITSIO
         }
       if (!dy)
         memset(fbuft0, 0, width*ntlines*sizeof(float));
@@ -443,6 +455,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
     else
       fheight = tab[a]->naxisn[1];
     QFSEEK(cat[a]->file, tab[a]->bodypos, SEEK_SET, cat[a]->filename);
+    cat[a]->tab->currentElement = 1; // CFITSIO
     minvalue[a] = field[a]->min;
     maxvalue[a] = field[a]->max;
     }
@@ -574,10 +587,12 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
 		a+1, nchan, l, nlevels-1, y+1, height);
         binsizey = ((y+1)<height? binsizey0:binsizeymax);
         my -= binsizey;
+
         if (!flipyflag && l==1)
           {
           imoffset = tab[a]->bodypos+(OFF_T)fwidth*my*tab[a]->bytepix;
           QFSEEK(cat[a]->file, imoffset, SEEK_SET, cat[a]->filename);
+          tab[a]->currentElement = (imoffset-tab[a]->bodypos)/tab[a]->bytepix; // CFITSIO
           }
         memset(datat, 0, width*sizeof(float));
 /*------ Bin the pixels */
@@ -1197,25 +1212,32 @@ void	make_imastats(fieldstruct *field,
   {
    catstruct	*cat;
    tabstruct	*tab;
-   KINGLONG	npix;
+   LONGLONG	npix;
    char		*rfilename;
    float	*med, *min, *max;
    PIXTYPE	*pixbuf;
    int		n, nsample, size;
 
-
   if (!((cat=field->cat) && open_cat(cat, READ_ONLY)==RETURN_OK))
     return;
   rfilename = field->rfilename;
   tab = field->tab;
+
+  if (tab->naxisn[1] ==1) tab = field->tab->nexttab;
+
   QFSEEK(cat->file, tab->bodypos, SEEK_SET, cat->filename);
+  tab->currentElement = 1; // CFITSIO
   size = IMAGE_BUFSIZE/sizeof(PIXTYPE);
   QMALLOC(pixbuf, PIXTYPE, size);
-  npix = tab->tabsize/tab->bytepix;
+
+  // CFITSIO
+  //npix = tab->tabsize/tab->bytepix;
+  npix = tab->naxisn[0] * tab->naxisn[1];
   nsample = (npix+size-1) / size;
   QMALLOC(med, float, nsample);
   QMALLOC(min, float, nsample);
   QMALLOC(max, float, nsample);
+
   for (n=0; n<nsample; npix -= size, n++)
     {
     NPRINTF(OUTPUT, "\33[1M> %s: Computing Image stats: %2.0f%%\n\33[1A",
@@ -1224,6 +1246,7 @@ void	make_imastats(fieldstruct *field,
     if (size>npix)
       size = npix;
     read_body(tab, pixbuf, size);
+
     med[n] = fast_median(pixbuf, size);
     if (minflag)
       min[n] = fast_quantile(pixbuf, size/2, field->min);
@@ -1242,6 +1265,7 @@ void	make_imastats(fieldstruct *field,
   free(max);
 
   QFSEEK(cat->file, tab->bodypos, SEEK_SET, cat->filename);
+   tab->currentElement = 1; // CFITSIO
 
   return;
   }

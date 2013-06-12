@@ -90,8 +90,16 @@ fieldstruct	*load_field(char *filename)
 
   field->tab = tab;
 /*-- Force the data to be at least 2D */
-  if (tab->naxis<2)
-    error(EXIT_FAILURE, "*Error*: no 2D FITS data in ", filename);
+  //if (tab->naxis<2)
+   // error(EXIT_FAILURE, "*Error*: no 2D FITS data in ", filename);
+
+  //if (!tab->isTileCompressed)
+	  if (tab->naxis<2){
+		  //error(EXIT_FAILURE, "*Error*: no 2D FITS data in ", filename);
+		  tab->naxis = 2;
+		  QREALLOC(tab->naxisn, int, 2);
+		  tab->naxisn[1] = 1;
+	  }
 
 /*-- Force unsigned int */
   if (tab->bitsgn && prefs.fitsunsigned_flag)
@@ -154,6 +162,13 @@ void	print_fieldinfo(fieldstruct *field)
 
   if (!(tab=field->tab))
     return;
+
+  if (tab->naxisn[1] == 1) {
+
+    	tab = tab->nexttab;
+    }
+
+
   if (field->cat->ntab>1)
     {
     if (tab->extname)
@@ -168,6 +183,7 @@ void	print_fieldinfo(fieldstruct *field)
     }
   else
     *str = '\0';
+
   QPRINTF(OUTPUT, "%s: \"%.20s\" %s %dx%d   %d bits (%s)\n"
 	"Background level: %-10g  Min level: %-10g  Max level: %-10g\n",
         field->rfilename, field->ident,
