@@ -22,7 +22,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with SExtractor. If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		13/10/2010
+#	Last modified:		27/06/2013
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -40,7 +40,7 @@ dist-hook:
 
 rpm:	dist
 	cp -f $(PACKAGE_NAME)-$(PACKAGE_VERSION).tar.gz $(RPM_SRCDIR)
-	rpmbuild -ba --clean --nodeps $(PACKAGE_NAME).spec
+	rpmbuild -ba --clean $(PACKAGE_NAME).spec
 
 rpm-icc:	dist
 	cp -f $(PACKAGE_NAME)-$(PACKAGE_VERSION).tar.gz $(RPM_SRCDIR)

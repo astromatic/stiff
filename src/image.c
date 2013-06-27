@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2012 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		19/03/2012
+*	Last modified:		22/06/2012
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -1190,18 +1190,18 @@ INPUT	Field structure of the image,
 OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	14/11/2004
+VERSION	22/06/2012
  ***/
 void	make_imastats(fieldstruct *field,
 		int backflag, int minflag, int maxflag)
   {
    catstruct	*cat;
    tabstruct	*tab;
-   KINGLONG	npix;
+   long		n,npix, nsample;
    char		*rfilename;
    float	*med, *min, *max;
    PIXTYPE	*pixbuf;
-   int		n, nsample, size;
+   int		size;
 
 
   if (!((cat=field->cat) && open_cat(cat, READ_ONLY)==RETURN_OK))

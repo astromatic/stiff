@@ -7,7 +7,7 @@
 #
 #	This file part of:	STIFF
 #
-#	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+#	Copyright:		(C) 2003-2013 Emmanuel Bertin -- IAP/CNRS/UPMC
 #
 #	License:		GNU General Public License
 #
@@ -22,7 +22,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with SExtractor. If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		13/10/2010
+#	Last modified:		27/06/2013
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -33,6 +33,6 @@ stiff_SOURCES		= datamem.c field.c image.c main.c makeit.c prefs.c \
 			  datamem.h define.h field.h globals.h image.h \
 			  key.h prefs.h preflist.h threads.h tiff.h types.h \
 			  xml.h
-stiff_LDADD		= $(top_builddir)/src/fits/libfits.a
+stiff_LDADD		= $(srcdir)/fits/libfits.a
 DATE=`date +"%Y-%m-%d"`
 

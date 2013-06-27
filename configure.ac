@@ -7,7 +7,7 @@
 #
 #	This file part of:	STIFF
 #
-#	Copyright:		(C) 2003-2011 Emmanuel Bertin -- IAP/CNRS/UPMC
+#	Copyright:		(C) 2003-2012 Emmanuel Bertin -- IAP/CNRS/UPMC
 #
 #	License:		GNU General Public License
 #
@@ -22,7 +22,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with STIFF.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		14/06/2011
+#	Last modified:		27/06/2013
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -33,7 +33,7 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(stiff, 2.2.1, [bertin@iap.fr])
+AC_INIT(stiff, 2.2.3, [bertin@iap.fr])
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_HEADERS(config.h)
@@ -55,44 +55,31 @@ sinclude(acx_urbi_resolve_dir.m4)
 # Display pakage and version number
 AC_MSG_RESULT([*********** Configuring:  $PACKAGE $VERSION ($date) **********])
 
-# Initialize the list of compilers to consider
-cclist="cc gcc"
-
-AC_MSG_CHECKING([if compilation flags are set automatically])
+AC_MSG_CHECKING([if compilation flags should be set automatically])
 AC_ARG_ENABLE(auto-flags,
-	[AC_HELP_STRING([--enable-auto-flags],
+	[AS_HELP_STRING([--enable-auto-flags],
 	[Let the configure script choose the compilation flags \
-(off by default)])],
-	use_autoflag="yes"
-	AC_MSG_RESULT([yes]),
-	use_autoflag="no"
-	AC_MSG_RESULT([no]))
+(off by default)])])
 
 # Provide special option for the Linux Intel C compiler
-AC_MSG_CHECKING([for Linux Intel C compiler mode])
+AC_MSG_CHECKING([whether we should use the INTEL compiler])
 AC_ARG_ENABLE(icc,
-	[AC_HELP_STRING([--enable-icc],
+	[AS_HELP_STRING([--enable-icc],
 	[Enable special mode for compilation with the Intel compiler \
 (off by default)])],
-        use_icc="yes"
-        cclist="icc $cclist"
+        CC="icc"
 	AC_MSG_RESULT([yes]),
-        use_icc="no"
 	AC_MSG_RESULT([no]))
 
 # Checks for programs.
-# GCC is chosen last because it is likely to yield less optimized code
-AC_PROG_CC([$cclist])
-# C Compiler: Check that it is ANSI C
-AM_PROG_CC_STDC
-# C Compiler: Check that it is POSIX-compliant
-AC_ISC_POSIX
-if test "$use_autoflag" = "yes"; then
+AC_LANG(C)
+
+AC_SEARCH_LIBS([strerror],[cposix])
+if test "$enable_auto_flags" = "yes"; then
   CFLAGS=""
   LDFLAGS=""
   ACX_PROG_CC_OPTIM
 fi
-AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 
@@ -102,6 +89,9 @@ AC_CHECK_LIB(m, sin)
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h time.h unistd.h sys/mman.h sys/stat.h sys/time.h sys/types.h)
+if test "$enable_icc" = "yes"; then
+  AC_CHECK_HEADERS(mathimf.h)
+fi
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -111,22 +101,46 @@ AC_TYPE_SIGNAL
 AC_TYPE_LONG_LONG_INT
 AC_TYPE_UNSIGNED_LONG_LONG_INT
 AC_TYPE_UID_T
-AC_CHECK_TYPES([unsigned long long, long long])
 
 # Checks for library functions.
+AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MMAP
+AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([atexit memmove memset munmap strchr strpbrk strrchr strspn strcspn strtol])
+AC_CHECK_FUNC([isnan], AC_DEFINE_UNQUOTED([HAVE_ISNAN2], 1,
+		[Second isnan check]))
 
 # Check support for large files
 AC_SYS_LARGEFILE
 AC_FUNC_FSEEKO
 
+# Provide special options for libraries
+AC_ARG_WITH(z-libdir,
+	[AS_HELP_STRING([--with-z-libdir=<libz library path>],
+	[Alternative directory for the zlib library])])
+AC_ARG_WITH(jpeg-libdir,
+	[AS_HELP_STRING([--with-jpeg-libdir=<libjpeg library path>],
+	[Alternative directory for the libJPEG library])])
+AC_ARG_WITH(tiff-libdir,
+	[AS_HELP_STRING([--with-tiff-libdir=<libTIFF library path>],
+	[Alternative directory for the libTIFF library])])
+AC_ARG_WITH(tiff-incdir,
+	[AS_HELP_STRING([--with-tiff-incdir=<libTIFF include dir>],
+	[plternative directory for libTIFF include files])])
+
+# Provide a special option for the default XSLT URL
+with_xsl_url="file://"$(URBI_RESOLVE_DIR([$datadir]))"/$PACKAGE_NAME/$PACKAGE_NAME.xsl"
+AC_ARG_WITH(xsl_url,
+	[AS_HELP_STRING([--with-xsl_url=<default URL for XSLT filter>],
+	[Provide an alternative default URL of the XSLT filter])])
+
+AC_DEFINE_UNQUOTED([XSL_URL], "$with_xsl_url",[Default URL of the XSLT filter])
 # Set flags for multithreading
-n_pthreads=16
+n_pthreads=64
 AC_ARG_ENABLE(threads,
-	[AC_HELP_STRING([--enable-threads@<:@=<max_number_of_threads>@:>@],
-	[Enable multhreading (on with up to 16 threads by default)])],
+	[AS_HELP_STRING([--enable-threads@<:@=<max_number_of_threads>@:>@],
+	[Enable multhreading (on with up to 64 threads by default)])],
     if test "$enableval" = "no"; then
       use_pthreads="no"
     else
@@ -138,65 +152,21 @@ AC_ARG_ENABLE(threads,
     use_pthreads=yes
     )
 
-# Provide special options for libTIFF
-AC_ARG_WITH(z-libdir,
-	[AC_HELP_STRING([--with-z-libdir=<libz library dir>],
-	[Provide an alternative path to the libz library directory])],
-    libz_libdir=$withval,
-    libz_libdir=""
-    )
-AC_ARG_WITH(jpeg-libdir,
-	[AC_HELP_STRING([--with-jpeg-libdir=<libjpeg library dir>],
-	[Provide an alternative path to the libJPEG library directory])],
-    libjpeg_libdir=$withval,
-    libjpeg_libdir=""
-    )
-AC_ARG_WITH(tiff-libdir,
-	[AC_HELP_STRING([--with-tiff-libdir=<libTIFF library dir>],
-	[Provide an alternative path to the libTIFF library directory])],
-    libtiff_libdir=$withval,
-    libtiff_libdir=""
-    )
-AC_ARG_WITH(tiff-incdir,
-	[AC_HELP_STRING([--with-tiff-incdir=<libTIFF include dir>],
-	[provide an alternative path to the libTIFF include directory])],
-    libtiff_incdir=$withval,
-    libtiff_incdir=""
-    )
-
-# Provide special option for gprof profiling
-AC_MSG_CHECKING([for gprof profiler mode])
-AC_ARG_ENABLE(gprof,
-        [AC_HELP_STRING([--enable-gprof],
-        [enable special mode for compilation with the gprof profiler \
-(off by default)])],
-        use_gprof="yes"
-        AC_MSG_RESULT([yes]),
-        use_gprof="no"
-        AC_MSG_RESULT([no]))
+# Provide special option for profiling
+AC_MSG_CHECKING([for profiler mode])
+AC_ARG_ENABLE(profiling,
+	[AS_HELP_STRING([--enable-profiling],
+	[Enable special mode for profiling (off by default)])]
+	AC_MSG_RESULT([yes]),
+	AC_MSG_RESULT([no]))
 
 # Enable linking options for making the executable as portable as possible.
 AC_MSG_CHECKING([best linking option])
 AC_ARG_ENABLE(best-link,
-	[AC_HELP_STRING([--enable-best-link],
-	[choose the right combination of static and dynamic linking to make \
-the executable as portable as possible (off by default)])],
-        use_best="yes"
-	AC_MSG_RESULT([yes]),
-        use_best="no"
-	AC_MSG_RESULT([no]))
+	[AS_HELP_STRING([--enable-best-link],
+	[Choose the right combination of static and dynamic linking to make \
+the executable as portable as possible (off by default)])])
 
-datadir2=$(URBI_RESOLVE_DIR([$datadir]))
-
-# Provide a special option for the default XSLT URL
-AC_ARG_WITH(xsl_url,
-	[AC_HELP_STRING([--with-xsl_url=<default URL for XSLT filter>],
-	[Provide an alternative default URL of the XSLT filter])],
-    [xsl_url=$withval],
-    [xsl_url="file://$datadir2/$PACKAGE_NAME/$PACKAGE_NAME.xsl"]
-    )
-
-AC_DEFINE_UNQUOTED([XSL_URL], "$xsl_url",[Default URL of the XSLT filter])
 
 ################# Actions to complete in case of multhreading ################
 AC_DEFINE_UNQUOTED(THREADS_NMAX, $n_pthreads,[Maximum number of POSIX threads])
@@ -213,7 +183,7 @@ fi
 AM_CONDITIONAL(USE_THREADS, test $use_pthreads = "yes")
 
 ######################## handle the libTIFF library ###########################
-ACX_LIBTIFF($libtiff_libdir,$libtiff_incdir, $libjpeg_libdir, $libz_libdir,
+ACX_LIBTIFF($with_libtiff_libdir,$with_libtiff_incdir, $with_libjpeg_libdir, $with_libz_libdir,
 	[use_libtiff=yes],[use_libtiff=no])
 if test "$use_libtiff" = "yes"; then
   LIBS="$LIBTIFF_LIBS $LIBS"
@@ -224,19 +194,23 @@ else
   AC_MSG_ERROR([$LIBTIFF_ERROR Exiting.])
 fi
 
-# Link with gprof option
-if test "$use_gprof" = "yes"; then
-  if test "$use_icc" = "yes"; then
+# Compile with profiling option
+if test "$enable_profiling" = "yes"; then
+  if test "$enable_icc" = "yes"; then
     AM_CFLAGS="$AM_CFLAGS -pq"
   else
     AM_CFLAGS="$AM_CFLAGS -pg"
   fi
-  use_best="no"
+  enable_best_link="no"
 fi
 
 # "Best" linking option
-if test "$use_best" = "yes"; then
-  AM_LDFLAGS="-shared-libgcc -static-libtool-libs $AM_LDFLAGS"
+if test "$enable_best_link" = "yes"; then
+  if test "$enable_icc" = "yes"; then
+    AM_LDFLAGS="-static-intel -shared-libgcc -no-intel-extensions $AM_LDFLAGS"
+  else
+    AM_LDFLAGS="-shared-libgcc $AM_LDFLAGS"
+  fi
 fi
 
 AC_SUBST(AM_CFLAGS)
