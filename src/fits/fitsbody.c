@@ -376,7 +376,33 @@ void	read_body(tabstruct *tab, PIXTYPE *ptr, size_t size)
         	if (tab->currentElement == 0) tab->currentElement = 1;
 
             // now read section of image
-        	status = 0; fits_read_img(tab->infptr, TFLOAT,  tab->currentElement, spoonful, NULL, bufdata, NULL, &status);
+        	int datatype;
+            switch(tab->bitpix){
+                 case BYTE_IMG:
+                     datatype = TBYTE;
+                     break;
+                 case SHORT_IMG:
+                     datatype = TSHORT;
+                     break;
+                 case LONG_IMG:
+                     datatype = TLONG;
+                     break;
+                 case FLOAT_IMG:
+                     datatype = TFLOAT;
+                     break;
+                 case DOUBLE_IMG:
+                     datatype = TDOUBLE;
+                     break;
+             }
+
+        	int anynul;
+            double bscale = 1.0, bzero = 0.0, nulval = 0.;
+
+            // turn off any scaling so that we copy raw pixel values
+            status = 0; fits_set_bscale(tab->infptr,  bscale, bzero, &status);
+
+            // now read the image
+        	status = 0; fits_read_img(tab->infptr, datatype,  tab->currentElement, spoonful, &nulval, bufdata0, &anynul, &status);
 
         	// report reading error
         	if (status != 0) {
