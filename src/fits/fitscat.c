@@ -356,7 +356,6 @@ int	map_cat(catstruct *cat)
       // this is how it was done previously
       //QFSEEK(cat->file, PADTOTAL(tab->tabsize), SEEK_CUR, cat->filename);
     }
-
     if (prevtab)
       {
       tab->prevtab = prevtab;
@@ -364,11 +363,9 @@ int	map_cat(catstruct *cat)
       }
     else
       cat->tab = tab;
-
     prevtab = tab;
     QCALLOC(tab, tabstruct, 1);
     tab->cat = cat;
-
     QFTELL(cat->file, tab->headpos, cat->filename);
 
     // CFITSIO
