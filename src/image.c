@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2012 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2014 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		22/06/2012
+*	Last modified:		06/02/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -77,7 +77,7 @@ INPUT	Output filename,
 OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	19/03/2012
+VERSION	06/02/2014
  ***/
 void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   {
@@ -86,8 +86,9 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
    tabstruct		**tab;
    unsigned char	*extrapix;
    char			*description;
+   double		*minvalue, *maxvalue;
    float		*fbuf[3],
-			*fbuft0, *fbuft, *fsbuf, *minvalue, *maxvalue;
+			*fbuft0, *fbuft, *fsbuf;
    PIXTYPE		*ibuf,*ibuft,
 			fpix;
    long			offset;
@@ -107,8 +108,8 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   fwidth = fheight = 0;
   description = NULL;	/* to avoid gcc -Wall warnings */
 
-  QMALLOC(minvalue, float, nchan);
-  QMALLOC(maxvalue, float, nchan);
+  QMALLOC(minvalue, double, nchan);
+  QMALLOC(maxvalue, double, nchan);
 
   for (a=0; a<nchan; a++)
     {
@@ -152,8 +153,8 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
     {
     case FORMAT_TIFF:
       image = create_tiff(filename, width, height, nchan, prefs.bpp, 0,
-		minvalue, maxvalue, prefs.bigtiff_type,
-		prefs.compress_type, prefs.compress_quality,
+		minvalue, maxvalue,
+		prefs.bigtiff_type, prefs.compress_type, prefs.compress_quality,
 		prefs.copyright,
 		prefs.header_flag? (description
 			= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
@@ -381,7 +382,7 @@ INPUT	File name,
 OUTPUT	Number of pyramid levels.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	19/03/2012
+VERSION	06/02/2014
  ***/
 int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   {
@@ -390,7 +391,8 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
    tabstruct		**tab;
    float		*data[3],
 			*datat,*datatt, *datao, *fbuf, *fbuft,*fbuftt, *fsbuf,
-			*minvalue, *maxvalue, fpix, fac;
+			fpix, fac;
+   double		*minvalue, *maxvalue;
    OFF_T		imoffset;
    size_t		ndata,ndatao;
    unsigned char	*pix;
@@ -414,8 +416,8 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   QMALLOC(tab, tabstruct *, nchan);
   fwidth = fheight = 0;
 
-  QMALLOC(minvalue, float, nchan);
-  QMALLOC(maxvalue, float, nchan);
+  QMALLOC(minvalue, double, nchan);
+  QMALLOC(maxvalue, double, nchan);
 
   for (a=0; a<nchan; a++)
     {

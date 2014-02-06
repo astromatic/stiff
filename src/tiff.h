@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2014 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		06/02/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -44,8 +44,8 @@
 
 /*------------------------------- functions ---------------------------------*/
 extern imagestruct	*create_tiff(char *filename, int width, int height,
-				int nchan, int bpp, int tilesize, float *minvalue,
-				float *maxvalue, int big_type,
+				int nchan, int bpp, int tilesize,
+				double *minvalue,double *maxvalue, int big_type,
 				int compress_type, int compress_quality,
 				char *copyright, char *description);
 
@@ -54,7 +54,7 @@ extern int		write_tifflines(imagestruct *image),
 
 extern void		create_tiffdir(imagestruct *image, int width,
 				int height, int bpp, int nchan, int tilesize,
-				float *minvalue, float *maxvalue,
+				double *minvalue, double *maxvalue,
 				int compress_type, int compress_quality,
 				char *copyright, char *description),
 			end_tiff(imagestruct *image);
