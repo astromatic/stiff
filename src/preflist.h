@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2014 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		16/03/2012
+*	Last modified:		23/02/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -143,7 +143,7 @@ char *default_prefs[] =
 "                                       # or \"GREYLEVEL\"",
 "MIN_LEVEL              0.001           # Minimum value, quantile or grey level",
 "MAX_TYPE               QUANTILE        # Max-level: \"QUANTILE\" or \"MANUAL\"",
-"MAX_LEVEL              0.995           # Maximum value or quantile",
+"MAX_LEVEL              0.999           # Maximum value or quantile",
 "*SATUR_LEVEL            40000.0         # FITS data saturation level(s)",
 "GAMMA_TYPE             POWER-LAW       # Gamma correction: POWER-LAW, SRGB or",
 "*                                       # REC.709",
