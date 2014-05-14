@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-**	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+**	Copyright:		(C) 2003-2014 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		19/03/2012
+*	Last modified:		06/02/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -48,9 +48,9 @@ int	tiff_compflag[] = {COMPRESSION_NONE, COMPRESSION_LZW, COMPRESSION_JPEG,
 
 /****** create_tiff ***********************************************************
 PROTO	imagestruct *create_tiff(char *filename, int width, int height,
-			int nchan, int bpp, int tilesize, float *minvalue,
-			float *maxvalue, int big_type,
-			int compress_type, float compress_quality,
+			int nchan, int bpp, int tilesize,
+			double *minvalue, double *maxvalue,
+			int big_type, int compress_type, float compress_quality,
 			char *copyright, char *description)
 PURPOSE	Create a TIFF image (write a TIFF header and return an imagestruct).
 INPUT	Output filename,
@@ -65,12 +65,12 @@ INPUT	Output filename,
 OUTPUT	Pointer to an imagestruct.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	19/03/2012
+VERSION	06/02/2014
  ***/
 imagestruct *create_tiff(char *filename, int width, int height,
-			int nchan, int bpp, int tilesize, float *minvalue,
-			float *maxvalue, int big_type,
-			int compress_type, int compress_quality,
+			int nchan, int bpp, int tilesize,
+			double *minvalue, double *maxvalue,
+			int big_type, int compress_type, int compress_quality,
 			char *copyright, char *description)
   {
    TIFF		*tiff;
@@ -100,7 +100,6 @@ imagestruct *create_tiff(char *filename, int width, int height,
 	>=134217728)
       warning("Very large TIFF file, ",
 	"but no BigTIFF support in this version of libtiff");
-
     }
 
   if ((tiff = TIFFOpen(filename, flagstr)) == NULL)
@@ -118,17 +117,18 @@ imagestruct *create_tiff(char *filename, int width, int height,
 
 /****** create_tiffdir ***********************************************************
 PROTO	void create_tiffdir(imagestruct *image, int width, int height,
-			int nchan, int bpp, int tilesize, float *minvalue,
-			float *maxvalue,
+			int nchan, int bpp, int tilesize,
+			double *minvalue, double *maxvalue,
 			int compress_type, int compress_quality,
-			char *copyright,
-			char *description)
+			char *copyright, char *description)
 PURPOSE	Create a TIFF "directory" (a new TIFF subimage).
 INPUT	image structure pointer,
 	image width in pixels,
 	image height in pixels,
 	number of channels (bytes),
 	tilesize (pixels, 0 for stripped),
+	pointer to an array of minimum values (one per channel),
+	pointer to an array of maximum values (one per channel),
 	TIFF compression type,
 	JPEG compression quality,
 	copyright string,
@@ -136,10 +136,11 @@ INPUT	image structure pointer,
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	19/03/2012
+VERSION	06/02/2014
  ***/
 void	create_tiffdir(imagestruct *image, int width, int height,
-			int nchan, int bpp, int tilesize, float *minvalue, float *maxvalue,
+			int nchan, int bpp, int tilesize,
+			double *minvalue, double *maxvalue,
 			int compress_type, int compress_quality,
 			char *copyright,
 			char *description)
@@ -179,8 +180,21 @@ void	create_tiffdir(imagestruct *image, int width, int height,
   if (bpp<0)
     {
     TIFFSetField(tiff, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+#ifdef TIFFTAG_PERSAMPLE
+    if(nchan>1)
+      {
+/*---- Hacky TIFF feature: see http://www.asmail.be/msg0055458208.html */
+      TIFFSetField(tiff, TIFFTAG_PERSAMPLE, PERSAMPLE_MULTI);
+      TIFFSetField(tiff, TIFFTAG_SMINSAMPLEVALUE, minvalue);
+      TIFFSetField(tiff, TIFFTAG_SMAXSAMPLEVALUE, maxvalue);
+      TIFFSetField(tiff, TIFFTAG_PERSAMPLE, PERSAMPLE_MERGED);
+      }
+    else
+#endif
+      {
     TIFFSetField(tiff, TIFFTAG_SMINSAMPLEVALUE, *minvalue);
     TIFFSetField(tiff, TIFFTAG_SMAXSAMPLEVALUE, *maxvalue);
+      }
     }
   TIFFSetField(tiff, TIFFTAG_COMPRESSION, tiff_compflag[compress_type]);
   if (tiff_compflag[compress_type] == COMPRESSION_JPEG)
