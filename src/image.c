@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2014 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		19/03/2012
+*	Last modified:		06/02/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -77,7 +77,7 @@ INPUT	Output filename,
 OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	19/03/2012
+VERSION	06/02/2014
  ***/
 void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   {
@@ -86,8 +86,9 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
    tabstruct		**tab;
    unsigned char	*extrapix;
    char			*description;
+   double		*minvalue, *maxvalue;
    float		*fbuf[3],
-			*fbuft0, *fbuft, *fsbuf, *minvalue, *maxvalue;
+			*fbuft0, *fbuft, *fsbuf;
    PIXTYPE		*ibuf,*ibuft,
 			fpix;
    long			offset;
@@ -107,12 +108,11 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   fwidth = fheight = 0;
   description = NULL;	/* to avoid gcc -Wall warnings */
 
-  QMALLOC(minvalue, float, nchan);
-  QMALLOC(maxvalue, float, nchan);
+  QMALLOC(minvalue, double, nchan);
+  QMALLOC(maxvalue, double, nchan);
 
   for (a=0; a<nchan; a++)
     {
-
     if (!(cat[a]=field[a]->cat))
       return;
     if (!(tab[a]=field[a]->tab))
@@ -129,10 +129,6 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
         error(EXIT_FAILURE, "*Error*: Image width doesn't match in ",
 		cat[a]->filename);
       }
-
-
-    // CFITSIO
-    //else if (tab[a]->naxisn[1] != 1){
     else{
     fwidth = tab[a]->naxisn[0];
     }
@@ -147,7 +143,6 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
     minvalue[a] = field[a]->min;
     maxvalue[a] = field[a]->max;
     }
-
   flipxflag = (prefs.flip_type == FLIP_X) || (prefs.flip_type == FLIP_XY);
   flipyflag = (prefs.flip_type == FLIP_Y) || (prefs.flip_type == FLIP_XY);
   binsizex0 = prefs.bin_size[0];
@@ -162,8 +157,8 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
     {
     case FORMAT_TIFF:
       image = create_tiff(filename, width, height, nchan, prefs.bpp, 0,
-		minvalue, maxvalue, prefs.bigtiff_type,
-		prefs.compress_type, prefs.compress_quality,
+		minvalue, maxvalue,
+		prefs.bigtiff_type, prefs.compress_type, prefs.compress_quality,
 		prefs.copyright,
 		prefs.header_flag? (description
 			= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
@@ -393,7 +388,7 @@ INPUT	File name,
 OUTPUT	Number of pyramid levels.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	19/03/2012
+VERSION	06/02/2014
  ***/
 int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   {
@@ -402,7 +397,8 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
    tabstruct		**tab;
    float		*data[3],
 			*datat,*datatt, *datao, *fbuf, *fbuft,*fbuftt, *fsbuf,
-			*minvalue, *maxvalue, fpix, fac;
+			fpix, fac;
+   double		*minvalue, *maxvalue;
    OFF_T		imoffset;
    size_t		ndata,ndatao;
    unsigned char	*pix;
@@ -426,11 +422,13 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   QMALLOC(tab, tabstruct *, nchan);
   fwidth = fheight = 0;
 
-  QMALLOC(minvalue, float, nchan);
-  QMALLOC(maxvalue, float, nchan);
+  QMALLOC(minvalue, double, nchan);
+  QMALLOC(maxvalue, double, nchan);
 
   for (a=0; a<nchan; a++)
     {
+
+
     swapname[a] = NULL;
     if (!(cat[a]=field[a]->cat))
       error(EXIT_FAILURE, "*Internal error* with ", cat[a]->filename);
@@ -438,6 +436,12 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
       error(EXIT_FAILURE, "*Internal error* with ", cat[a]->filename);
     if (tab[a]->naxis<2)
       error(EXIT_FAILURE, "*Error*: not a 2D image in ", cat[a]->filename);
+
+
+    // CFITSIO deals with first empty extension
+    if (tab[a]->naxisn[1] ==1)
+    	tab[a] = tab[a]->nexttab;
+
     if (fwidth)
       {
       if (tab[a]->naxisn[0] != fwidth)
@@ -463,7 +467,6 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   set_maxdataram(prefs.mem_max);
   set_maxdatavram(prefs.vmem_max);
   set_dataswapdir(prefs.swapdir_name);
-
 
 /* Compute the number of pyramid levels */
   flipxflag = (prefs.flip_type == FLIP_X) || (prefs.flip_type == FLIP_XY);
@@ -587,7 +590,6 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
 		a+1, nchan, l, nlevels-1, y+1, height);
         binsizey = ((y+1)<height? binsizey0:binsizeymax);
         my -= binsizey;
-
         if (!flipyflag && l==1)
           {
           imoffset = tab[a]->bodypos+(OFF_T)fwidth*my*tab[a]->bytepix;
@@ -1205,18 +1207,19 @@ INPUT	Field structure of the image,
 OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	14/11/2004
+VERSION	22/06/2012
  ***/
 void	make_imastats(fieldstruct *field,
 		int backflag, int minflag, int maxflag)
   {
    catstruct	*cat;
    tabstruct	*tab;
-   LONGLONG	npix;
+   long		n,npix, nsample;
    char		*rfilename;
    float	*med, *min, *max;
    PIXTYPE	*pixbuf;
-   int		n, nsample, size;
+   int		size;
+
 
   if (!((cat=field->cat) && open_cat(cat, READ_ONLY)==RETURN_OK))
     return;
@@ -1229,7 +1232,6 @@ void	make_imastats(fieldstruct *field,
   tab->currentElement = 1; // CFITSIO
   size = IMAGE_BUFSIZE/sizeof(PIXTYPE);
   QMALLOC(pixbuf, PIXTYPE, size);
-
   // CFITSIO
   //npix = tab->tabsize/tab->bytepix;
   npix = tab->naxisn[0] * tab->naxisn[1];
@@ -1237,7 +1239,6 @@ void	make_imastats(fieldstruct *field,
   QMALLOC(med, float, nsample);
   QMALLOC(min, float, nsample);
   QMALLOC(max, float, nsample);
-
   for (n=0; n<nsample; npix -= size, n++)
     {
     NPRINTF(OUTPUT, "\33[1M> %s: Computing Image stats: %2.0f%%\n\33[1A",
@@ -1246,7 +1247,6 @@ void	make_imastats(fieldstruct *field,
     if (size>npix)
       size = npix;
     read_body(tab, pixbuf, size);
-
     med[n] = fast_median(pixbuf, size);
     if (minflag)
       min[n] = fast_quantile(pixbuf, size/2, field->min);
