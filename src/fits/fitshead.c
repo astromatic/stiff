@@ -124,6 +124,7 @@ void	readbasic_head(tabstruct *tab)
 
           strcpy(NAXIS_KEYWORD, "ZNAXIS  ");
           strcpy(BITPIX_KEYWORD, "ZBITPIX ");
+
   }
   else {
           tab->isTileCompressed = 0;
@@ -168,6 +169,10 @@ void	readbasic_head(tabstruct *tab)
 /*random groups parameters (optional)*/
   tab->pcount = 0;
   fitsread(tab->headbuf, "PCOUNT  ", &tab->pcount, H_INT, T_LONG);
+
+  // CFITSIO TODO HACK
+  if (tab->isTileCompressed) tab->pcount = 0;
+
   tab->gcount = 1;
   fitsread(tab->headbuf, "GCOUNT  ", &tab->gcount, H_INT, T_LONG);
 
@@ -430,7 +435,7 @@ int	update_head(tabstruct *tab)
     return RETURN_ERROR;
 
   if (tab->nkey>1000)
-     warning("Too many output keys, trashing the ones bejond 999", "");
+     warning("Too many output keys, trashing the ones beyond 999", "");
   for (i=0; i<MIN(999,tab->nkey); i++)
     {
     sprintf(strk, "TTYPE%-3d", i+1);
