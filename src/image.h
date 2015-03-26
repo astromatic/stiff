@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		16/03/2012
+*	Last modified:		26/03/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -72,7 +72,7 @@ typedef struct structimage
 
 /*------------------------------- functions ---------------------------------*/
 extern void	data_to_pix(fieldstruct **field, float **data, size_t offset,
-			unsigned char *outpix, int npix, int nchan, int bypp,
+			unsigned char *outpix, size_t npix, int nchan, int bypp,
 			int fflag, float *buffer),
 		image_convert_single(char *filename, fieldstruct **field,
 			int nchan),
@@ -88,7 +88,7 @@ extern int	image_convert_pyramid(char *filename, fieldstruct **field,
 		raster_to_tiles(unsigned char *inpix, unsigned char *outpix,
 			int width, int tilesizey, int tilesize, int nbytes);
 
-float		fast_median(float *arr, int n),
-		fast_quantile(float *arr, int n, float frac);
+float		fast_median(float *arr, long n),
+		fast_quantile(float *arr, long n, float frac);
 
 #endif

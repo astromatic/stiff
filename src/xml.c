@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2009-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2009-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *

@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-**	Copyright:		(C) 2003-2014 Emmanuel Bertin -- IAP/CNRS/UPMC
+**	Copyright:		(C) 2003-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		06/02/2014
+*	Last modified:		26/03/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -136,7 +136,7 @@ INPUT	image structure pointer,
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	06/02/2014
+VERSION	26/03/2015
  ***/
 void	create_tiffdir(imagestruct *image, int width, int height,
 			int nchan, int bpp, int tilesize,
@@ -153,7 +153,7 @@ void	create_tiffdir(imagestruct *image, int width, int height,
 		pshostb[MAXCHAR],
 		pssoft[MAXCHAR],
 		*psuser, *pshost;
-   int		nbytes;
+   size_t	nbytes;
 
   tiff = image->tiff;
 
@@ -263,17 +263,17 @@ void	create_tiffdir(imagestruct *image, int width, int height,
     image->ntilesy = (height+tilesize-1)/tilesize;
     TIFFSetField(tiff, TIFFTAG_TILEWIDTH, tilesize);
     TIFFSetField(tiff, TIFFTAG_TILELENGTH, tilesize);
-    image->buf = _TIFFmalloc(image->ntilesx*tilesize*tilesize*nchan
+    image->buf = _TIFFmalloc((size_t)image->ntilesx*tilesize*tilesize*nchan
 			*image->bypp);
     }
   else
     {
     image->nlines = IMAGE_NLINES;
-    nbytes = nchan*width*image->bypp*image->nlines;
-    if (TIFFScanlineSize(tiff)*image->nlines < nbytes)
+    nbytes = nchan*(size_t)width*image->bypp*image->nlines;
+    if ((size_t)TIFFScanlineSize(tiff)*image->nlines < nbytes)
       image->buf = (unsigned char *)_TIFFmalloc(nbytes);
     else
-      image->buf = (unsigned char *)_TIFFmalloc(TIFFScanlineSize(tiff)
+      image->buf = (unsigned char *)_TIFFmalloc((size_t)TIFFScanlineSize(tiff)
 		*image->nlines);
     TIFFSetField(tiff, TIFFTAG_ROWSPERSTRIP, IMAGE_ROWS);
     }
@@ -289,18 +289,19 @@ INPUT	Pointer to the image structure.
 OUTPUT	RETURN_OK if OK, RETURN_ERROR otherwise.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	13/01/2010
+VERSION	26/03/2015
  ***/
 int	write_tifflines(imagestruct *image)
   {
-   int	n,y, step, nstrip;
+   size_t	step;
+   int		n,y, nstrip;
 
   y = image->y / IMAGE_ROWS;
-  step = image->nchan*image->bypp*image->width*IMAGE_ROWS;
+  step = (size_t)image->nchan*image->bypp*image->width*IMAGE_ROWS;
   nstrip = (image->nlines+IMAGE_ROWS-1)/IMAGE_ROWS;
   for (n=0; n<nstrip; n++)
     if (TIFFWriteEncodedStrip(image->tiff, y++,
-	(tdata_t *)(image->buf+n*step), (size_t)step) < 0)
+	(tdata_t *)(image->buf + n * step), step) < 0)
       return RETURN_ERROR;
 
   return RETURN_OK;
@@ -315,15 +316,16 @@ INPUT	Pointer to the image structure,
 OUTPUT	RETURN_OK if OK, RETURN_ERROR otherwise.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	03/01/2010
+VERSION	26/03/2015
  ***/
 int	write_tifftiles(imagestruct *image)
   {
    unsigned char	*buft;
-   int			x, nx, npix;
+   size_t		npix;
+   int			x, nx;
 
   nx = image->ntilesx;
-  npix = image->tilesize*image->tilesize*image->nchan*image->bypp;
+  npix = (size_t)image->tilesize*image->tilesize*image->nchan*image->bypp;
   buft = image->buf;
   for (x=0; x<nx; x++)
     {

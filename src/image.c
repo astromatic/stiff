@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2014 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		06/02/2014
+*	Last modified:		26/03/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -57,7 +57,7 @@
 
    fieldstruct		**pthread_field;
    imagestruct		*pthread_image;
-   OFF_T		pthread_imoffset;
+   size_t		pthread_imoffset;
    float		**pthread_data,
 			**pthread_fsbuf;
    unsigned char	*pthread_pix;
@@ -77,7 +77,7 @@ INPUT	Output filename,
 OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	06/02/2014
+VERSION	05/07/2014
  ***/
 void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   {
@@ -87,21 +87,17 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
    unsigned char	*extrapix;
    char			*description;
    double		*minvalue, *maxvalue;
-   float		*fbuf[3],
+   float		*fbuf[MAXFILE],
 			*fbuft0, *fbuft, *fsbuf;
    PIXTYPE		*ibuf,*ibuft,
 			fpix;
    long			offset;
-   OFF_T		imoffset;
+   size_t		imoffset;
    int			a, x,y, bx,by, width,height, fwidth,fheight,
 			binsizex0,binsizey0,binsizexmax,binsizeymax,
 			binsizex,binsizey,
 			owidth, my, flipxflag, flipyflag, dyflag, dy,
 			nlines, ntlines;
-
-/* Start by making a few checks */
-  if (nchan != 1 && nchan != 3)
-    return;
 
   QMALLOC(cat, catstruct *, nchan);
   QMALLOC(tab, tabstruct *, nchan);
@@ -175,7 +171,7 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   nlines = image->nlines;
   for (a=0; a<nchan; a++)
     {
-    QMALLOC(fbuf[a], float, width*nlines);
+    QMALLOC(fbuf[a], float, (size_t)width*nlines);
     }
 
 #ifdef USE_THREADS
@@ -198,7 +194,7 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   QMALLOC(proc, int, nproc);
   QMALLOC(pthread_fsbuf, float *, nproc);
   QMALLOC(thread, pthread_t, nproc);
-  QMALLOC(fsbuf, float, width*nproc);
+  QMALLOC(fsbuf, float, (size_t)width*nproc);
   QMALLOC(extrapix, unsigned char, width*nlines*image->bypp*image->nchan);
   pthread_field = field;
   pthread_image = image;
@@ -215,13 +211,13 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   for (p=0; p<nproc; p++)
     {
     proc[p] = p;
-    pthread_fsbuf[p] = &fsbuf[p*pthread_width];
+    pthread_fsbuf[p] = &fsbuf[p*(size_t)pthread_width];
     QPTHREAD_CREATE(&thread[p], &pthread_attr, &pthread_data_to_pix, &proc[p]);
     }
   p = 0;
   QPTHREAD_CREATE(&tthread, &pthread_attr, &pthread_write_lines, &p);
 #else
-  QMALLOC(fsbuf, float, width*nlines);
+  QMALLOC(fsbuf, float, (size_t)width*nlines);
 /* Install the signal-catching routines for temporary file cleanup */
   install_cleanup(NULL);
 #endif
@@ -249,22 +245,22 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
       if (ntlines > height - y)
         ntlines = height - y;
 #ifdef USE_THREADS
-      memset(fsbuf, 0, width*nproc*sizeof(float));
+      memset(fsbuf, 0, (size_t)width*nproc*sizeof(float));
 #else
-      memset(fsbuf, 0, width*nlines*sizeof(float));
+      memset(fsbuf, 0, (size_t)width*nlines*sizeof(float));
 #endif
       }
     dyflag = (dy == ntlines - 1);
     for (a=0; a<nchan; a++)
       {
-      fbuft0 = fbuf[a] + dy*width;
+      fbuft0 = fbuf[a] + dy*(size_t)width;
       if (!flipyflag)
         {
-        imoffset = tab[a]->bodypos+(OFF_T)fwidth*my*tab[a]->bytepix;
+        imoffset = tab[a]->bodypos + (size_t)fwidth * my * tab[a]->bytepix;
         QFSEEK(cat[a]->file, imoffset, SEEK_SET, cat[a]->filename);
         }
       if (!dy)
-        memset(fbuft0, 0, width*ntlines*sizeof(float));
+        memset(fbuft0, 0, (size_t)width * ntlines * sizeof(float));
 /*---- Bin the pixels */
       for (by=binsizey; by--;)
         {
@@ -308,12 +304,12 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
         threads_gate_sync(pthread_stopwgate);
       image->y = y-ntlines+1;
       image->nlines = ntlines;
-      memcpy(image->buf, extrapix, width*ntlines*image->bypp*nchan);
+      memcpy(image->buf, extrapix, (size_t)width*ntlines*image->bypp*nchan);
       threads_gate_sync(pthread_startwgate);
 /*---- ( Writing thread starts processing the current buffer data here ) */
 #else
-      data_to_pix(field, fbuf, 0, image->buf, width*ntlines, nchan, image->bypp,
-		image->fflag, fsbuf);
+      data_to_pix(field, fbuf, 0, image->buf, (size_t)width*ntlines,
+		nchan, image->bypp, image->fflag, fsbuf);
       switch(prefs.format_type2)
         {
         case FORMAT_TIFF:
@@ -382,30 +378,26 @@ INPUT	File name,
 OUTPUT	Number of pyramid levels.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	06/02/2014
+VERSION	26/03/2015
  ***/
 int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   {
    imagestruct		*image;
    catstruct		**cat;
    tabstruct		**tab;
-   float		*data[3],
+   float		*data[MAXFILE],
 			*datat,*datatt, *datao, *fbuf, *fbuft,*fbuftt, *fsbuf,
 			fpix, fac;
    double		*minvalue, *maxvalue;
-   OFF_T		imoffset;
+   size_t		imoffset;
    size_t		ndata,ndatao;
    unsigned char	*pix;
-   char			*swapname[3],
+   char			*swapname[MAXFILE],
 			*swapnameo, *description;
    int			a,i,l, w,h, x,y,my,ny,bx,by, nlevels, width,height,
 			fwidth,fheight, binsizex0,binsizey0, binsizex,binsizey,
 			binsizexmax,binsizeymax, minsizex, minsizey, binx,biny,
 			tilesize,tilesizey, flipxflag, flipyflag, bypp;
-
-/* Start by making a few checks */
-  if (nchan != 1 && nchan != 3)
-    return 0;
 
   swapnameo = NULL;	/* to avoid gcc -Wall warnings */
   ndatao = ndata = 0;
@@ -571,23 +563,23 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
         {
         if (!y || !((y+1)%100))
         NPRINTF(OUTPUT,
-		"\33[1M> Channel %1d/%-1d: Pyramid level %2d/%-2d: "
+		"\33[1M> Pyramid level %2d/%-2d: Channel %1d/%-1d: "
 		"Reducing line %7d/%-7d\n\33[1A",
-		a+1, nchan, l, nlevels-1, y+1, height);
+		l, nlevels-1, a+1, nchan, y+1, height);
         binsizey = ((y+1)<height? binsizey0:binsizeymax);
         my -= binsizey;
         if (!flipyflag && l==1)
           {
-          imoffset = tab[a]->bodypos+(OFF_T)fwidth*my*tab[a]->bytepix;
+          imoffset = tab[a]->bodypos + (size_t)fwidth * my * tab[a]->bytepix;
           QFSEEK(cat[a]->file, imoffset, SEEK_SET, cat[a]->filename);
           }
-        memset(datat, 0, width*sizeof(float));
+        memset(datat, 0, (size_t)width*sizeof(float));
 /*------ Bin the pixels */
         for (by=binsizey; by--;)
           {
           if (l==1)
             {
-            read_body(tab[a], fbuf, fwidth);
+            read_body(tab[a], fbuf, (size_t)fwidth);
             fbuft = fbuf;
             }
           fbuftt = fbuft;
@@ -597,7 +589,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
             for (x=width; x--;)
               {
               fpix = 0;
-              binsizex = x>0? binsizex0:binsizexmax;
+              binsizex = x>0? binsizex0 : binsizexmax;
               fac = 1.0/(binsizex*binsizey);
               for (bx=binsizex; bx--;)
                 fpix += *(fbuftt++);
@@ -610,7 +602,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
             for (x=width; x--;)
               {
               fpix = 0;
-              binsizex = x>0? binsizex0:binsizexmax;
+              binsizex = x>0? binsizex0 : binsizexmax;
               fac = 1.0/(binsizex*binsizey);
               for (bx=binsizex; bx--;)
                 fpix += *(fbuftt++);
@@ -626,7 +618,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
       }
 
     ny = image->ntilesy;
-    QMALLOC(pix, unsigned char, tilesize*width*nchan*bypp);
+    QMALLOC(pix, unsigned char, tilesize*(size_t)width*nchan*bypp);
     tilesizey = tilesize;
     imoffset = 0;
 #ifdef USE_THREADS
@@ -641,11 +633,11 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
         pthread_nbuflines /= i;
         break;
         }
-    QMALLOC(fsbuf, float, nproc*pthread_width);
+    QMALLOC(fsbuf, float, nproc*(size_t)pthread_width);
     for (p=0; p<nproc; p++)
-      pthread_fsbuf[p] = &fsbuf[p*pthread_width];
+      pthread_fsbuf[p] = &fsbuf[p*(size_t)pthread_width];
 #else
-    QMALLOC(fsbuf, float, tilesize*width);
+    QMALLOC(fsbuf, float, tilesize*(size_t)width);
 #endif
     for (y=0; y<ny; y++)
       {
@@ -674,11 +666,12 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
       threads_gate_sync(pthread_startwgate);
 /*---- ( Writing thread starts processing the current buffer data here ) */
 #else
-      data_to_pix(field, data, imoffset, pix, tilesizey*width,nchan,bypp,image->fflag,fsbuf);
+      data_to_pix(field, data, imoffset, pix, tilesizey*(size_t)width,
+		nchan,bypp,image->fflag,fsbuf);
       raster_to_tiles(pix, image->buf, width, tilesizey, tilesize, nchan*bypp);
       write_tifftiles(image);
 #endif
-      imoffset += tilesize*width;
+      imoffset += tilesize * (size_t)width;
       }
 #ifdef USE_THREADS
     threads_gate_sync(pthread_stopwgate);
@@ -725,8 +718,8 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
 
 
 /****** data_to_pix ***********************************************************
-PROTO	void data_to_pix(fieldstruct **field, float **data,
-		unsigned char *outpix, int npix, int nchan, int bypp,
+PROTO	void data_to_pix(fieldstruct **field, float **data, size_t offset,
+		unsigned char *outpix, size_t npix, int nchan, int bypp,
 		int fflag, float *buffer)
 PURPOSE	Read an array of data and convert it to colour pixel values.
 INPUT	Array of field pointers,
@@ -741,14 +734,14 @@ INPUT	Array of field pointers,
 OUTPUT	-..
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	19/03/2012
+VERSION	26/03/2015
  ***/
 void	data_to_pix(fieldstruct **field, float **data, size_t offset,
-		unsigned char *outpix, int npix, int nchan, int bypp,
+		unsigned char *outpix, size_t npix, int nchan, int bypp,
 		int fflag, float *buffer)
   {
-   float		*datap[3],
-			dataval[3], fmin[3], scale[3],
+   float		*datap[MAXFILE],
+			dataval[MAXFILE], fmin[MAXFILE], scale[MAXFILE],
 			*buffert, *datat, *outfpixt,
 			invgammaf, coloursat, fac, sc, fm, fpix,fspix,
 			fmax, pmax, pblack,pwhite,pscale,
@@ -756,7 +749,8 @@ void	data_to_pix(fieldstruct **field, float **data, size_t offset,
    /* unsigned int		*outipixt; */
    unsigned short	*outspixt;
    unsigned char	*outbpixt;
-   int			a,p, colflag, negflag, /*iflag,*/ sflag;
+   long			p, pnpix;
+   int			a, colflag, negflag, /*iflag,*/ sflag;
 
   colflag = (nchan==3);
   coloursat = prefs.colour_sat/3.0;
@@ -926,31 +920,32 @@ INPUT	Input array of pixels,
 OUTPUT	Number of tiles along the x axis.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	17/06/2010
+VERSION	26/03/2015
  ***/
 int raster_to_tiles(unsigned char *inpix, unsigned char *outpix,
 			int width, int tilesizey, int tilesize, int nbytes)
   {
    unsigned char	*inpixt,*outpixt;
+   size_t		swidth;
    int			x,y, nx, tilesizex,tilesizef;
 
   nx = (width+tilesize-1)/tilesize;
 /* Everything is multiplied by the number of channels */
-  width *= nbytes;
+  swidth = (size_t)width*nbytes;
   tilesizex = tilesizef = tilesize*nbytes;
   if (tilesizey != tilesize)
-    memset(outpix, 0, tilesize*width);
+    memset(outpix, 0, tilesize*swidth);
   for (x=0; x<nx; x++)
     {
     inpixt = inpix+x*tilesizef;
     outpixt = outpix+x*tilesizef*tilesize;
     if (x==nx-1)
       {
-      tilesizex = width - x*tilesizex;
+      tilesizex = swidth - x*tilesizex;
       if (tilesizex != tilesizef)
         memset(outpixt, 0, tilesizef*tilesize);
       }
-    for (y=tilesizey; y--; inpixt += width, outpixt += tilesizef)
+    for (y=tilesizey; y--; inpixt += swidth, outpixt += tilesizef)
       memcpy(outpixt, inpixt, tilesizex);
     }
 
@@ -967,7 +962,7 @@ INPUT   Pointer to the thread number.
 OUTPUT  -.
 NOTES   -.
 AUTHOR  E. Bertin (IAP)
-VERSION 16/03/2012
+VERSION 26/03/2015
  ***/
 void    *pthread_data_to_pix(void *arg)
   {
@@ -985,8 +980,9 @@ void    *pthread_data_to_pix(void *arg)
       QPTHREAD_MUTEX_UNLOCK(&tiffmutex);
       data_to_pix(pthread_field,
 		pthread_data,
-		pthread_imoffset+bufline*pthread_width,
-		pthread_pix+bufline*pthread_width*pthread_nchan*pthread_bypp,
+		pthread_imoffset + bufline * (size_t)pthread_width,
+		pthread_pix + bufline * (size_t)pthread_width
+			* pthread_nchan * pthread_bypp,
 		pthread_width,
 		pthread_nchan,
 		pthread_bypp,
@@ -1261,15 +1257,15 @@ OUTPUT  Value of the median.
 NOTES   n must be >0. Warning: changes the order of data (but does not sort
         them)!
 AUTHOR  E. Bertin (IAP), optimized from N.Devillard's code
-VERSION 10/04/2003
+VERSION 26/03/2015
  ***/
 #define MEDIAN_SWAP(a,b) { float t=(a);(a)=(b);(b)=t; }
 
-float fast_median(float *arr, int n)
+float fast_median(float *arr, long n)
   {
-   float      *alow, *ahigh, *amedian, *amiddle, *all, *ahh,
-                val, valmax, valmax2;
-   int          i, nless;
+   float	*alow, *ahigh, *amedian, *amiddle, *all, *ahh,
+		val, valmax, valmax2;
+   long		i, nless;
 
   if (!n)
     return 0.0;
@@ -1358,11 +1354,11 @@ OUTPUT  Value of the quantile.
 NOTES   n must be >0. Warning: changes the order of data (but does not sort
         them)!
 AUTHOR  E. Bertin (IAP), optimized from Num.Rec. code
-VERSION 28/01/2003
+VERSION 26/03/2015
  ***/
 #define QUANTILE_SWAP(a,b) { register float t=(a);(a)=(b);(b)=t; }
 
-float fast_quantile(float *arr, int n, float frac)
+float fast_quantile(float *arr, long n, float frac)
   {
    float      *alow, *ahigh, *amedian, *amiddle, *all, *ahh;
 
@@ -1372,7 +1368,7 @@ float fast_quantile(float *arr, int n, float frac)
     frac = 0.0; 
   alow = arr;
   ahigh = arr + n - 1;
-  amedian = arr + (int)(frac*(n-0.5001));
+  amedian = arr + (long)(frac*(n-0.5001));
   while (ahigh > (all=alow + 1))
     {
 /*-- Find median of low, middle and high items; swap into position low */

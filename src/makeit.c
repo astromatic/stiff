@@ -96,11 +96,9 @@ void	makeit(void)
   narg = prefs.nfile;
   QMALLOC(field, fieldstruct *, narg);
 /* Go argument by argument */
-  NFPRINTF(OUTPUT, "Examining input data...")
-  NFPRINTF(OUTPUT, "")
-  if (narg != 1 && narg != 3)
-    error(EXIT_FAILURE, "*Error*: Only 1 or 3 FITS images must be provided ",
-				"");
+  NFPRINTF(OUTPUT, "Examining input data...");
+  NFPRINTF(OUTPUT, "");
+
 /* Initialize the XML stack */
   if (prefs.xml_flag)
     init_xml(narg);
