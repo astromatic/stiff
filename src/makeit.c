@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		19/03/2012
+*	Last modified:		09/04/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -154,11 +154,12 @@ void	makeit(void)
 		&& (w>=prefs.min_size[0] || h>=prefs.min_size[1]))
 	|| level<2;
 	level++, w/=2,h/=2)
-    QPRINTF(OUTPUT, "%s: %6dx%-6d  %-2d bits (%s) gamma: x%4.2f  compression: %s \n",
+    QPRINTF(OUTPUT, "%s: %7dx%-7d  %4dx%-2d bits (%s) gamma: x%4.2f  compression: %s \n",
         rfilename,
 	w,
 	h,
-	narg*nbit,
+	narg,
+	nbit,
         imtype,
 	prefs.gamma_fac,
 	key[findkeys("COMPRESSION_TYPE", keylist,

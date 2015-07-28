@@ -7,7 +7,7 @@
 #
 #	This file part of:	STIFF
 #
-#	Copyright:		(C) 2003-2014 Emmanuel Bertin -- IAP/CNRS/UPMC
+#	Copyright:		(C) 2003-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
 #
 #	License:		GNU General Public License
 #
@@ -22,7 +22,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with STIFF.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		05/07/2014
+#	Last modified:		28/07/2015
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -33,7 +33,7 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(stiff, 2.5.1, [bertin@iap.fr])
+AC_INIT(stiff, 2.5.3, [bertin@iap.fr])
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_HEADERS(config.h)
@@ -183,7 +183,7 @@ fi
 AM_CONDITIONAL(USE_THREADS, test $use_pthreads = "yes")
 
 ######################## handle the libTIFF library ###########################
-ACX_LIBTIFF($with_libtiff_libdir,$with_libtiff_incdir, $with_libjpeg_libdir, $with_libz_libdir,
+ACX_LIBTIFF($with_libtiff_libdir,$with_libtiff_incdir, $with_jpeg_libdir, $with_libz_libdir,
 	[use_libtiff=yes],[use_libtiff=no])
 if test "$use_libtiff" = "yes"; then
   LIBS="$LIBTIFF_LIBS $LIBS"

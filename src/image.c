@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		26/03/2015
+*	Last modified:		09/04/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -378,7 +378,7 @@ INPUT	File name,
 OUTPUT	Number of pyramid levels.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	26/03/2015
+VERSION	09/04/2015
  ***/
 int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   {
@@ -644,7 +644,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
       NPRINTF(OUTPUT,
 		"\33[1M> Pyramid level %2d/%-2d: "
 		"Converting and tiling row %3d/%-3d\n\33[1A",
-		l, nlevels, y+1, ny);
+		l, nlevels-1, y+1, ny);
       if (y==ny-1)
         {
         tilesizey = height - y*tilesize;
