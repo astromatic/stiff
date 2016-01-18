@@ -7,7 +7,7 @@
 #
 #	This file part of:	STIFF
 #
-#	Copyright:		(C) 2003-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
+#	Copyright:		(C) 2003-2016 Emmanuel Bertin -- IAP/CNRS/UPMC
 #
 #	License:		GNU General Public License
 #
@@ -22,7 +22,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with STIFF.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		28/07/2015
+#	Last modified:		19/01/2016
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -33,7 +33,7 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(stiff, 2.5.3, [bertin@iap.fr])
+AC_INIT(stiff, 2.6.0, [bertin@iap.fr])
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_HEADERS(config.h)

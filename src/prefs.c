@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2016 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		19/03/2012
+*	Last modified:		19/01/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -540,7 +540,11 @@ void	useprefs(void)
   prefs.nmax_val = prefs.nfile;
   for (i=prefs.nsat_val; i<prefs.nfile; i++)
     prefs.sat_val[i] = prefs.sat_val[prefs.nsat_val-1];
-  prefs.nmax_val = prefs.nfile;
+  prefs.nsat_val = prefs.nfile;
+  for (i=prefs.nbadpixel_replacement; i<prefs.nfile; i++)
+    prefs.badpixel_replacement[i]
+	= prefs.badpixel_replacement[prefs.nbadpixel_replacement-1];
+  prefs.nbadpixel_replacement = prefs.nfile;
 
   return;
   }

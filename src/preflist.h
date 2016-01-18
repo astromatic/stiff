@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2014 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2016 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		23/02/2014
+*	Last modified:		19/01/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -54,6 +54,8 @@ int idummy;
 
 pkeystruct key[] =
  {
+  {"BADPIXEL_REPLACEMENT", P_FLOATLIST, prefs.badpixel_replacement,0,0,-BIG,BIG,
+    {""}, 1, MAXFILE, &prefs.nbadpixel_replacement},
   {"BIGTIFF_TYPE", P_KEY, &prefs.bigtiff_type, 0,0, 0.0,0.0,
    {"AUTO","NEVER","ALWAYS",""}},
   {"BINNING", P_INTLIST, prefs.bin_size, 1, 32768, 0.0,0.0,
@@ -151,6 +153,7 @@ char *default_prefs[] =
 "GAMMA_FAC              1.0             # Luminance gamma correction factor",
 "COLOUR_SAT             1.0             # Colour saturation (0.0 = B&W)",
 "NEGATIVE               N               # Make negative of the image",
+"*BADPIXEL_REPLACEMENT   0.0             # Replacement(s) for NaNs or bad values",
 " ",
 "*#------------------------------ Memory management -----------------------------",
 "*",

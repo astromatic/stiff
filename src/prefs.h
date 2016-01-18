@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		1/01/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -83,6 +83,8 @@ typedef struct
   int		nmax_val;		/* Number of parameters */
   double	sat_val[MAXFILE];	/* FITS saturation level */
   int		nsat_val;		/* Number of parameters */
+  double	badpixel_replacement[MAXFILE];/* Bad pixel replacement value */
+  int		nbadpixel_replacement;	/* Number of parameters */
 /* Virtual memory handling */
   int		mem_max;		/* Max amount of allocatable RAM */ 
   int		vmem_max;		/* Max amount of allocatable VMEM */ 

@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2016 Emmanuel Bertin -- IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		09/04/2015
+*	Last modified:		19/01/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -734,7 +734,7 @@ INPUT	Array of field pointers,
 OUTPUT	-..
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	26/03/2015
+VERSION	19/01/2016
  ***/
 void	data_to_pix(fieldstruct **field, float **data, size_t offset,
 		unsigned char *outpix, size_t npix, int nchan, int bypp,
@@ -750,20 +750,20 @@ void	data_to_pix(fieldstruct **field, float **data, size_t offset,
    unsigned short	*outspixt;
    unsigned char	*outbpixt;
    long			p, pnpix;
-   int			a, colflag, negflag, /*iflag,*/ sflag;
+   int			a,b, colflag, negflag, /*iflag,*/ sflag;
 
-  colflag = (nchan==3);
-  coloursat = prefs.colour_sat/3.0;
+  colflag = (nchan>1);
+  coloursat = prefs.colour_sat / nchan;
 
 
 /* Adjust luminosity and contrast and sum fluxes from the different channels */
-  fac = 1.0/nchan;
+  fac = 1.0 / nchan;
   sflag = (bypp>1);
   /* iflag = (bypp>2); unsigned integer flag */
   invgammaf = 1.0/prefs.gamma_fac;
 
-  memset(buffer, 0, npix*sizeof(float));
-
+  if (buffer)
+    memset(buffer, 0, npix*sizeof(float));
   switch(prefs.gamma_type)
     {
     case GAMMA_POWERLAW:
@@ -820,7 +820,10 @@ void	data_to_pix(fieldstruct **field, float **data, size_t offset,
     outfpixt = (float *)outpix;
     for (p=0; p<npix; p++)
       for (a=0; a<nchan; a++)
-        *(outfpixt++) = data[a][p+offset];
+        {
+        fpix = data[a][p+offset];
+        *(outfpixt++) = (fpix > -BIG) ? fpix : prefs.badpixel_replacement[a];
+        }
     }
   else
     {
@@ -832,7 +835,9 @@ void	data_to_pix(fieldstruct **field, float **data, size_t offset,
       buffert = buffer;
       for (p=npix; p--;)
         {
-        if ((fpix = sc*(*(datat++) - fm)) < 0.0)
+        fpix = *(datat++) = (*datat > -BIG? *datat
+		: prefs.badpixel_replacement[a]);
+        if ((fpix = sc * (fpix - fm)) < 0.0)
           fpix = 0.0;
         *(buffert++) += fpix*fac;
         }
@@ -870,6 +875,7 @@ void	data_to_pix(fieldstruct **field, float **data, size_t offset,
       fspix = *(buffert++);
       fmax = powf(fspix, 1.0 - invgammaf);
       for (a=0; a<nchan; a++)
+
         if ((dataval[a] = scale[a]*(datap[a][p]-fmin[a])) >= fmax)
           dataval[a] = fmax;
 
@@ -878,7 +884,9 @@ void	data_to_pix(fieldstruct **field, float **data, size_t offset,
         fpix = dataval[a];
         if (colflag)
           {
-          fpix = fspix + coloursat*(2.0*fpix-dataval[(a+1)%3]-dataval[(a+2)%3]);
+          fpix = fspix + coloursat * (nchan - 1) * fpix;
+          for (b=1; b<nchan; b++)
+            fpix -= coloursat * dataval[(a+b)%nchan];
           if (fpix<0.0)
             fpix = 0.0;
           }
