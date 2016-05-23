@@ -22,7 +22,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with STIFF.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		19/01/2016
+#	Last modified:		23/05/2016
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -33,7 +33,7 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(stiff, 2.6.0, [bertin@iap.fr])
+AC_INIT(stiff, 2.6.1, [bertin@iap.fr])
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_HEADERS(config.h)
@@ -127,7 +127,7 @@ AC_ARG_WITH(tiff-libdir,
 	[Alternative directory for the libTIFF library])])
 AC_ARG_WITH(tiff-incdir,
 	[AS_HELP_STRING([--with-tiff-incdir=<libTIFF include dir>],
-	[plternative directory for libTIFF include files])])
+	[Alternative directory for libTIFF include files])])
 
 # Provide a special option for the default XSLT URL
 with_xsl_url="file://"$(URBI_RESOLVE_DIR([$datadir]))"/$PACKAGE_NAME/$PACKAGE_NAME.xsl"
@@ -183,7 +183,7 @@ fi
 AM_CONDITIONAL(USE_THREADS, test $use_pthreads = "yes")
 
 ######################## handle the libTIFF library ###########################
-ACX_LIBTIFF($with_libtiff_libdir,$with_libtiff_incdir, $with_jpeg_libdir, $with_libz_libdir,
+ACX_LIBTIFF($with_tiff_libdir,$with_tiff_incdir, $with_jpeg_libdir, $with_libz_libdir,
 	[use_libtiff=yes],[use_libtiff=no])
 if test "$use_libtiff" = "yes"; then
   LIBS="$LIBTIFF_LIBS $LIBS"
