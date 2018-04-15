@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2016 IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		07/06/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -43,10 +43,12 @@
 
 typedef struct field
   {
+  int		index;			/* Field index (used for sorting) */
 /* ---- file parameters */
   char		filename[MAXCHAR];	/* Image filename */
   char		*rfilename;		/* Pointer to the reduced image name */
   char		ident[MAXCHAR];		/* Field identifier (read from FITS) */
+  char		channeltag[MAXCHAR];	/* Channel tag */
   catstruct	*cat;			/* Cat structure */
   tabstruct	*tab;			/* Selected structure */
   int		size[2];		/* Image size */

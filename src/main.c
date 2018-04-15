@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2016 IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		13/10/2010
+*	Last modified:		08/06/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -34,6 +34,7 @@
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<string.h>
+#include	<unistd.h>
 #include	LIBTIFF_H
 
 #include	"define.h"
@@ -55,10 +56,15 @@ int	main(int argc, char *argv[])
   {
    double	tdiff, lines,mpix;
    float	ver;
-   char		verstr[MAXCHAR],
-		**argkey, **argval,
-		*str;
-   int		a, narg, nim, opt,opt2;
+   char		verstr[MAXCHAR],liststr[MAXCHAR],
+			**argkey, **argval,
+			*str,*listname,*listbuf;
+   int		a, narg, nim, opt,opt2, bufpos, bufsize;
+
+#ifdef HAVE_SETLINEBUF
+/* flush output buffer at each line */
+  setlinebuf(stderr);
+#endif
 
   if (argc<2)
     {
@@ -77,13 +83,16 @@ int	main(int argc, char *argv[])
   QMALLOC(argkey, char *, argc);
   QMALLOC(argval, char *, argc);
 
-/*default parameters */
+/* Default parameters */
   prefs.command_line = argv;
   prefs.ncommand_line = argc;
   prefs.nfile = 1;
   prefs.file_name[0] = "image";
   strcpy(prefs.prefs_name, "stiff.conf");
   narg = nim = 0;
+  listbuf = (char *)NULL;
+  bufpos = 0;
+  bufsize = MAXCHAR*1000;
 
   for (a=1; a<argc; a++)
     {

@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2016 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2016 IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		19/01/2016
+*	Last modified:		07/06/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -61,6 +61,11 @@ pkeystruct key[] =
   {"BINNING", P_INTLIST, prefs.bin_size, 1, 32768, 0.0,0.0,
    {""}, 1, 2, &prefs.nbin_size},
   {"BITS_PER_CHANNEL", P_INT, &prefs.bpp, -32, 16},
+  {"CHANNELTAG_TYPE", P_KEY, &prefs.channeltag_type, 0,0, 0.0,0.0,
+   {"FITS_KEYWORD", "MANUAL", "MATCH", ""}},
+  {"CHANNELTAG_KEY", P_STRING, &prefs.channeltag_key, 0,0, 0.0,0.0},
+  {"CHANNEL_TAGS", P_STRINGLIST, prefs.channel_tags, 0,0, 0.0,0.0,
+   {""}, 0, MAXTAG, &prefs.nchannel_tags},
   {"COMPRESSION_QUALITY", P_INT, &prefs.compress_quality, 0,100},
   {"COMPRESSION_TYPE", P_KEY, &prefs.compress_type, 0,0, 0.0,0.0,
    {"NONE", "LZW", "JPEG", "DEFLATE", "ADOBE-DEFLATE", ""}},
@@ -137,6 +142,11 @@ char *default_prefs[] =
 "*FLIP_TYPE              NONE            # NONE, or flip about X, Y or XY",
 "*FITS_UNSIGNED          N               # Treat FITS integers as unsigned",
 " ",
+"*#------------------------------- Channel tagging ----------------------------",
+"*CHANNELTAG_TYPE        FITS_KEYWORD    # FITS_KEYWORD, MANUAL, or MATCH",
+"*CHANNELTAG_KEY         FILTER          # FITS keyword with channel tag",
+"*CHANNEL_TAGS                           # List of tags for MANUAL or MATCH modes",
+"* ",
 "#------------------------------- Dynamic range ------------------------------",
 " ",
 "SKY_TYPE               AUTO            # Sky-level: \"AUTO\" or \"MANUAL\"",

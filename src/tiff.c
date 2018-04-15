@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-**	Copyright:		(C) 2003-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
+**	Copyright:		(C) 2003-2016 IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		26/03/2015
+*	Last modified:		07/06/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -136,7 +136,7 @@ INPUT	image structure pointer,
 OUTPUT	-.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	26/03/2015
+VERSION	07/06/2016
  ***/
 void	create_tiffdir(imagestruct *image, int width, int height,
 			int nchan, int bpp, int tilesize,
@@ -180,6 +180,7 @@ void	create_tiffdir(imagestruct *image, int width, int height,
   if (bpp<0)
     {
     TIFFSetField(tiff, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+    TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, 34892);	/* LinearRaw */
 #ifdef TIFFTAG_PERSAMPLE
     if(nchan>1)
       {
@@ -195,7 +196,11 @@ void	create_tiffdir(imagestruct *image, int width, int height,
       TIFFSetField(tiff, TIFFTAG_SMINSAMPLEVALUE, *minvalue);
       TIFFSetField(tiff, TIFFTAG_SMAXSAMPLEVALUE, *maxvalue);
       }
-   }
+    }
+  else
+    TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC,
+		nchan==1? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
+
   TIFFSetField(tiff, TIFFTAG_COMPRESSION, tiff_compflag[compress_type]);
   if (tiff_compflag[compress_type] == COMPRESSION_JPEG)
     {
@@ -208,8 +213,6 @@ void	create_tiffdir(imagestruct *image, int width, int height,
     }
   TIFFSetField(tiff, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
   TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-  TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC,
-		nchan==1? PHOTOMETRIC_MINISBLACK:PHOTOMETRIC_RGB);
   TIFFSetField(tiff, TIFFTAG_RESOLUTIONUNIT, RESUNIT_INCH);
   TIFFSetField(tiff, TIFFTAG_XRESOLUTION, 72.0);
   TIFFSetField(tiff, TIFFTAG_YRESOLUTION, 72.0);

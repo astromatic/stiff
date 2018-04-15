@@ -12,6 +12,9 @@
 /* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
 #undef HAVE_FSEEKO
 
+/* Define to 1 if you have the `getenv' function. */
+#undef HAVE_GETENV
+
 /* Define to 1 if you have the `getpagesize' function. */
 #undef HAVE_GETPAGESIZE
 
@@ -50,6 +53,9 @@
 
 /* Define if you have POSIX threads libraries and header files. */
 #undef HAVE_PTHREAD
+
+/* Define to 1 if you have the `setlinebuf' function. */
+#undef HAVE_SETLINEBUF
 
 /* Define to 1 if `stat' has the bug that it succeeds when given the
    zero-length file name argument. */

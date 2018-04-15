@@ -18,7 +18,7 @@
 #
 #	This file part of:	STIFF
 #
-#	Copyright:		(C) 2003-2010 Emmanuel Bertin - IAP/CNRS/UPMC
+#	Copyright:		(C) 2003-2016 IAP/CNRS/UPMC
 #
 #	License:		GNU General Public License
 #
@@ -33,7 +33,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		13/10/2010
+#	Last modified:		07/06/2016
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
 
@@ -237,6 +237,7 @@
   <xsl:template name="Input_Image_Data">
    <xsl:variable name="name" select="count(FIELD[@name='Image_Name']/preceding-sibling::FIELD)+1"/>
    <xsl:variable name="ident" select="count(FIELD[@name='Image_Ident']/preceding-sibling::FIELD)+1"/>
+   <xsl:variable name="channeltag" select="count(FIELD[@name='Image_ChannelTag']/preceding-sibling::FIELD)+1"/>
    <xsl:variable name="size" select="count(FIELD[@name='Image_Size']/preceding-sibling::FIELD)+1"/>
    <xsl:variable name="back" select="count(FIELD[@name='Level_Background']/preceding-sibling::FIELD)+1"/>
    <xsl:variable name="min" select="count(FIELD[@name='Level_Min']/preceding-sibling::FIELD)+1"/>
@@ -249,6 +250,7 @@
      <TR>
       <TH>Filename</TH>
       <TH>Identifier</TH>
+      <TH>Channel tag</TH>
       <TH>Size</TH>
       <TH>Background level (ADU)</TH>
       <TH>Minimum level (ADU)</TH>
@@ -264,6 +266,10 @@
 <!-- Identifier -->
         <td align="center">
          <el><xsl:value-of select="TD[$ident]"/></el>
+        </td>
+<!-- ChannelTag -->
+        <td align="center">
+         <el><xsl:value-of select="TD[$channeltag]"/></el>
         </td>
 <!-- Image size -->
         <td align="center">

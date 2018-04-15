@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2016 IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		09/04/2015
+*	Last modified:		07/06/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -57,12 +57,12 @@ double			dtime;
 void	makeit(void)
   {
    struct tm		*tm;
-   fieldstruct		**field;
+   fieldstruct		**fields;
    PIXTYPE		grey;
    float		ver;
    char			verstr[MAXCHAR], imtype[MAXCHAR],
 			*rfilename;
-   int			a,w,h, narg, nbit, level;
+   int			f,i, w,h, nfield, nbit, level;
 
 /* Install error logging */
 //  error_installfunc(write_error);
@@ -93,39 +93,47 @@ void	makeit(void)
     NPRINTF(OUTPUT, "> BigTIFF support is: OFF (libTIFF V%3.1f)\n\n", ver);
 
 /* Load input images */
-  narg = prefs.nfile;
-  QMALLOC(field, fieldstruct *, narg);
+  nfield = prefs.nfile;
+  QMALLOC(fields, fieldstruct *, nfield);
 /* Go argument by argument */
   NFPRINTF(OUTPUT, "Examining input data...");
   NFPRINTF(OUTPUT, "");
 
 /* Initialize the XML stack */
   if (prefs.xml_flag)
-    init_xml(narg);
+    init_xml(nfield);
 
 /* Read the FITS files */
   QPRINTF(OUTPUT, "----- Inputs:\n");
-  for (a=0; a<narg; a++)
-    {
-    field[a] = load_field(prefs.file_name[a]);
-    field[a]->back = prefs.back_val[a];
-    field[a]->max = prefs.max_val[a];
-    field[a]->min = prefs.min_val[a];
-    if (prefs.back_type[a]!=BACK_MANUAL || prefs.max_type[a]==MAX_QUANTILE
-	 ||  prefs.min_type[a]==MIN_QUANTILE)
-      make_imastats(field[a],
-	prefs.back_type[a]!=BACK_MANUAL, prefs.min_type[a]==MIN_QUANTILE,
-	prefs.max_type[a]==MAX_QUANTILE);
-    if (field[a]->max > prefs.sat_val[a])
-      warning("MAX_LEVEL exceeds SATUR_LEVEL in ", field[a]->rfilename);
+  for (f=0; f<nfield; f++)
+    fields[f] = load_field(prefs.file_name[f]);
 
-    if (prefs.min_type[a] == MIN_GREYLEVEL)
+/* Tag fields */
+  tag_fields(fields, nfield);
+
+/* Compute/set flux rescaling */
+  for (f=0; f<nfield; f++)
+    {
+    i = fields[f]->index;
+    fields[f]->back = prefs.back_val[i];
+    fields[f]->max = prefs.max_val[i];
+    fields[f]->min = prefs.min_val[i];
+    if (prefs.back_type[i]!=BACK_MANUAL || prefs.max_type[i]==MAX_QUANTILE
+	 ||  prefs.min_type[i]==MIN_QUANTILE)
+      make_imastats(fields[f],
+	prefs.back_type[i]!=BACK_MANUAL, prefs.min_type[i]==MIN_QUANTILE,
+	prefs.max_type[i]==MAX_QUANTILE);
+    if (fields[f]->max > prefs.sat_val[i])
+      warning("MAX_LEVEL exceeds SATUR_LEVEL in ", fields[f]->rfilename);
+
+    if (prefs.min_type[i] == MIN_GREYLEVEL)
       {
-      grey = pow(prefs.min_val[a], prefs.gamma_fac);
-      field[a]->min = (field[a]->max*grey - field[a]->back) / (grey - 1.0);
+      grey = pow(prefs.min_val[i], prefs.gamma_fac);
+      fields[f]->min = (fields[f]->max*grey - fields[f]->back) / (grey - 1.0);
       }
-    print_fieldinfo(field[a]);
+    print_fieldinfo(fields[f]);
     }
+
 /* Display Output image characteristics */
 /* A short, "relative" version of the filename */
   if (!(rfilename = strrchr(prefs.tiff_name, '/')))
@@ -134,11 +142,11 @@ void	makeit(void)
     rfilename++;
 
   w = prefs.bin_size[0]>1?
-	  (field[0]->tab->naxisn[0]+prefs.bin_size[0]-1)/prefs.bin_size[0]
-	: field[0]->tab->naxisn[0];
+	  (fields[0]->tab->naxisn[0]+prefs.bin_size[0]-1)/prefs.bin_size[0]
+	: fields[0]->tab->naxisn[0];
   h = prefs.bin_size[1]>1?
-	  (field[0]->tab->naxisn[1]+prefs.bin_size[1]-1)/prefs.bin_size[1]
-	: field[0]->tab->naxisn[1];
+	  (fields[0]->tab->naxisn[1]+prefs.bin_size[1]-1)/prefs.bin_size[1]
+	: fields[0]->tab->naxisn[1];
 
   prefs.nlines = (double)h;
   prefs.npix = (double)w*(double)h;
@@ -158,7 +166,7 @@ void	makeit(void)
         rfilename,
 	w,
 	h,
-	narg,
+	nfield,
 	nbit,
         imtype,
 	prefs.gamma_fac,
@@ -169,14 +177,14 @@ void	makeit(void)
 
 /* Do the conversion */
   if (prefs.format_type2 == FORMAT_TIFF_PYRAMID)
-    image_convert_pyramid(prefs.tiff_name, field, narg);
+    image_convert_pyramid(prefs.tiff_name, fields, nfield);
   else
-    image_convert_single(prefs.tiff_name, field, narg);
+    image_convert_single(prefs.tiff_name, fields, nfield);
 
 /* Update the output field meta-data */
-  for (a=0; a<narg; a++)
+  for (f=0; f<nfield; f++)
     if (prefs.xml_flag)
-      update_xml(field[a]);
+      update_xml(fields[f]);
 
 /* Processing end date and time */
   thetime2 = time(NULL);
@@ -195,9 +203,9 @@ void	makeit(void)
     }
 
 /* Free memory */
- for (a=0; a<narg; a++)
-    end_field(field[a]);
-  free(field);
+ for (f=0; f<nfield; f++)
+    end_field(fields[f]);
+  free(fields);
 
   return;
   }

@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		19/01/2016
+*	Last modified:		08/06/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -54,7 +54,7 @@
 /*
 Print the default preference parameters.
 */
-void    dumpprefs(int state)
+void	dumpprefs(int state)
   {
    char **dp;
 
@@ -78,13 +78,14 @@ documentation)
 void    readprefs(char *filename, char **argkey, char **argval, int narg)
 
   {
-   FILE          *infile;
-   char          *cp, str[MAXCHAR], *keyword, *value, **dp;
-   int           i, ival, nkey, warn, argi, flagc, flagd, flage, flagz;
-   double	dval;
+   FILE			*infile;
+   char			str[MAXCHARL],
+			**dp, *cp,  *keyword, *value, *listbuf;
+   int			i, ival, nkey, warn, argi, flagc, flagd, flage, flagz;
+   double		dval;
 #ifdef	HAVE_GETENV
-   static char	value2[MAXCHAR],envname[MAXCHAR];
-   char		*dolpos;
+   static char	value2[MAXCHARL],envname[MAXCHAR];
+   char			*dolpos;
 #endif
 
 
@@ -105,6 +106,7 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
 
 /*Scan the configuration file*/
 
+  listbuf = NULL;
   argi=0;
   flagc = 0;
   flagd = 1;
@@ -124,7 +126,7 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
         flagd = 0;
       }
     if (!flagc && !flagd)
-      if (flage || !fgets(str, MAXCHAR, infile))
+      if (flage || !fgets(str, MAXCHARL, infile))
         flagc=1;
 
     if (flagc)
@@ -146,7 +148,7 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
       nkey = findkeys(keyword, keylist, FIND_STRICT);
       if (nkey!=RETURN_ERROR)
         {
-        value = mystrtok((char *)NULL, notokstr);  
+        value = mystrtok((char *)NULL, notokstr);
 #ifdef	HAVE_GETENV
 /*------ Expansion of environment variables (preceded by '$') */
         if (value && (dolpos=strchr(value, '$')))
@@ -182,7 +184,7 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
               }
 	    }
 
-          value = value2;
+          value = mystrtok(value2, notokstr);
           }
 #endif
         switch(key[nkey].type)
@@ -190,6 +192,8 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
           case P_FLOAT:
             if (!value || value[0]==(char)'#')
               error(EXIT_FAILURE, keyword," keyword has no value!");
+            if (*value=='@')
+              value = listbuf = list_to_str(value+1);
             dval = atof(value);
             if (dval>=key[nkey].dmin && dval<=key[nkey].dmax)
               *(double *)(key[nkey].ptr) = dval;
@@ -200,7 +204,9 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
           case P_INT:
             if (!value || value[0]==(char)'#')
               error(EXIT_FAILURE, keyword," keyword has no value!");
-            ival = atoi(value);
+            if (*value=='@')
+              value = listbuf = list_to_str(value+1);
+            ival = (int)strtol(value, (char **)NULL, 0);
             if (ival>=key[nkey].imin && ival<=key[nkey].imax)
               *(int *)(key[nkey].ptr) = ival;
             else
@@ -210,12 +216,16 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
           case P_STRING:
             if (!value || value[0]==(char)'#')
               error(EXIT_FAILURE, keyword," string is empty!");
+            if (*value=='@')
+              value = listbuf = list_to_str(value+1);
             strcpy((char *)key[nkey].ptr, value);
             break;
 
           case P_BOOL:
             if (!value || value[0]==(char)'#')
               error(EXIT_FAILURE, keyword," keyword has no value!");
+            if (*value=='@')
+              value = listbuf = list_to_str(value+1);
             if ((cp = strchr("yYnN", (int)value[0])))
               *(int *)(key[nkey].ptr) = (tolower((int)*cp)=='y')?1:0;
             else
@@ -225,6 +235,8 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
           case P_KEY:
             if (!value || value[0]==(char)'#')
               error(EXIT_FAILURE, keyword," keyword has no value!");
+            if (*value=='@')
+              value = listbuf = list_to_str(value+1);
             if ((ival = findkeys(value, key[nkey].keylist,FIND_STRICT))
 			!= RETURN_ERROR)
               *(int *)(key[nkey].ptr) = ival;
@@ -233,7 +245,9 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
             break;
 
           case P_BOOLLIST:
-            for (i=0; i<MAXLIST&&value&&value[0]!=(char)'#'; i++)
+            if (value && *value=='@')
+              value = mystrtok(listbuf = list_to_str(value+1), notokstr);
+            for (i=0; i<MAXLIST && value && value[0]!=(char)'#'; i++)
               {
               if (i>=key[nkey].nlistmax)
                 error(EXIT_FAILURE, keyword, " has too many members");
@@ -249,11 +263,13 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
             break;
 
           case P_INTLIST:
-            for (i=0; i<MAXLIST&&value&&value[0]!=(char)'#'; i++)
+            if (value && *value=='@')
+              value = mystrtok(listbuf = list_to_str(value+1), notokstr);
+            for (i=0; i<MAXLIST && value && value[0]!=(char)'#'; i++)
               {
               if (i>=key[nkey].nlistmax)
-                error(EXIT_FAILURE, keyword, " list has too many members");
-              ival = strtol(value, NULL, 0);
+                error(EXIT_FAILURE, keyword, " has too many members");
+              ival = (int)strtol(value, (char **)NULL, 0);
               if (ival>=key[nkey].imin && ival<=key[nkey].imax)
                 ((int *)key[nkey].ptr)[i] = ival;
               else
@@ -266,7 +282,9 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
             break;
 
           case P_FLOATLIST:
-            for (i=0; i<MAXLIST&&value&&value[0]!=(char)'#'; i++)
+            if (value && *value=='@')
+              value = mystrtok(listbuf = list_to_str(value+1), notokstr);
+            for (i=0; i<MAXLIST && value && value[0]!=(char)'#'; i++)
               {
               if (i>=key[nkey].nlistmax)
                 error(EXIT_FAILURE, keyword, " has too many members");
@@ -283,6 +301,8 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
             break;
 
           case P_KEYLIST:
+            if (value && *value=='@')
+              value = mystrtok(listbuf = list_to_str(value+1), notokstr);
             for (i=0; i<MAXLIST && value && value[0]!=(char)'#'; i++)
               {
               if (i>=key[nkey].nlistmax)
@@ -300,6 +320,8 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
             break;
 
           case P_STRINGLIST:
+            if (value && *value=='@')
+              value = mystrtok(listbuf = list_to_str(value+1), notokstr);
             if (!value || value[0]==(char)'#')
               {
               value = "";
@@ -315,6 +337,8 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
               QMALLOC(((char **)key[nkey].ptr)[i], char, MAXCHAR);
               strcpy(((char **)key[nkey].ptr)[i], value);
               value = mystrtok((char *)NULL, notokstr);
+              if (flagz)
+                break;
               }
             if (i<key[nkey].nlistmin)
               error(EXIT_FAILURE, keyword, " list has not enough members");
@@ -325,6 +349,11 @@ void    readprefs(char *filename, char **argkey, char **argval, int narg)
             error(EXIT_FAILURE, "*Internal ERROR*: Type Unknown",
 				" in readprefs()");
             break;
+          }
+        if (listbuf)
+          {
+          free(listbuf);
+          listbuf = NULL;
           }
         key[nkey].flag = 1;
         }
@@ -386,6 +415,46 @@ int	cistrcmp(char *cs, char *ct, int mode)
     }
 
   return 0;
+  }
+
+
+/****** list_to_str **********************************************************
+PROTO	char	*list_to_str(char *listname)
+PURPOSE	Read the content of a file and convert it to a long string.
+INPUT	File name.
+OUTPUT	Pointer to an allocated string, or NULL if something went wrong.
+NOTES	-.
+AUTHOR	E. Bertin (IAP)
+VERSION	08/06/2016
+ ***/
+char	*list_to_str(char *listname)
+  {
+   FILE	*fp;
+   char		liststr[MAXCHAR],
+		*listbuf, *str;
+   int		l, bufpos, bufsize;
+
+  if (!(fp=fopen(listname,"r")))
+    error(EXIT_FAILURE, "*Error*: File not found: ", listname);
+  bufsize = 8*MAXCHAR;
+  QMALLOC(listbuf, char, bufsize);
+  for (bufpos=0; fgets(liststr,MAXCHAR,fp);)
+    for (str=NULL; (str=mystrtok(str? NULL: liststr, "\n\r\t "));)
+      {
+      if (bufpos>MAXLISTSIZE)
+        error(EXIT_FAILURE, "*Error*: Too many parameters in ", listname);
+      l = strlen(str) + (bufpos ? 3 : 2);
+      if (bufpos+l > bufsize)
+        {
+        bufsize += 8*MAXCHAR;
+        QREALLOC(listbuf, char, bufsize);
+        }
+      sprintf(listbuf+bufpos, bufpos? " \"%s\"" : "\"%s\"", str);
+      bufpos += l;
+      }
+  fclose(fp);
+
+  return listbuf;
   }
 
 
@@ -498,7 +567,7 @@ void	useprefs(void)
 
   {
    char	*str;
-   int	i;
+   int	i, nmax;
 
   if (prefs.bpp != -32 && prefs.bpp != 8 && prefs.bpp != 16)
     {
@@ -507,6 +576,7 @@ void	useprefs(void)
         "BITS_PER_CHANNEL set to 8");
     }
 
+  nmax = prefs.nfile > prefs.nchannel_tags ? prefs.nfile :  prefs.nchannel_tags;
   prefs.format_type2 = prefs.format_type;
   if (prefs.format_type == FORMAT_AUTO)
     {
@@ -520,31 +590,31 @@ void	useprefs(void)
     prefs.bin_size[i] = prefs.bin_size[prefs.nbin_size-1];
   for (i=prefs.nmin_size; i<2; i++)
     prefs.min_size[i] = prefs.min_size[prefs.nmin_size-1];
-  for (i=prefs.nback_type; i<prefs.nfile; i++)
+  for (i=prefs.nback_type; i<nmax; i++)
     prefs.back_type[i] = prefs.back_type[prefs.nback_type-1];
-  prefs.nback_type = prefs.nfile;
-  for (i=prefs.nback_val; i<prefs.nfile; i++)
+  prefs.nback_type = nmax;
+  for (i=prefs.nback_val; i<nmax; i++)
     prefs.back_val[i] = prefs.back_val[prefs.nback_val-1];
-  prefs.nback_val = prefs.nfile;
-  for (i=prefs.nmin_type; i<prefs.nfile; i++)
+  prefs.nback_val = nmax;
+  for (i=prefs.nmin_type; i<nmax; i++)
     prefs.min_type[i] = prefs.min_type[prefs.nmin_type-1];
-  prefs.nmin_type = prefs.nfile;
-  for (i=prefs.nmin_val; i<prefs.nfile; i++)
+  prefs.nmin_type = nmax;
+  for (i=prefs.nmin_val; i<nmax; i++)
     prefs.min_val[i] = prefs.min_val[prefs.nmin_val-1];
-  prefs.nmin_val = prefs.nfile;
-  for (i=prefs.nmax_type; i<prefs.nfile; i++)
+  prefs.nmin_val = nmax;
+  for (i=prefs.nmax_type; i<nmax; i++)
     prefs.max_type[i] = prefs.max_type[prefs.nmax_type-1];
-  prefs.nmax_type = prefs.nfile;
-  for (i=prefs.nmax_val; i<prefs.nfile; i++)
+  prefs.nmax_type = nmax;
+  for (i=prefs.nmax_val; i<nmax; i++)
     prefs.max_val[i] = prefs.max_val[prefs.nmax_val-1];
-  prefs.nmax_val = prefs.nfile;
-  for (i=prefs.nsat_val; i<prefs.nfile; i++)
+  prefs.nmax_val = nmax;
+  for (i=prefs.nsat_val; i<nmax; i++)
     prefs.sat_val[i] = prefs.sat_val[prefs.nsat_val-1];
-  prefs.nsat_val = prefs.nfile;
+  prefs.nsat_val = nmax;
   for (i=prefs.nbadpixel_replacement; i<prefs.nfile; i++)
     prefs.badpixel_replacement[i]
 	= prefs.badpixel_replacement[prefs.nbadpixel_replacement-1];
-  prefs.nbadpixel_replacement = prefs.nfile;
+  prefs.nbadpixel_replacement = nmax;
 
   return;
   }

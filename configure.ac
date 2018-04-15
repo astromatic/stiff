@@ -7,7 +7,7 @@
 #
 #	This file part of:	STIFF
 #
-#	Copyright:		(C) 2003-2016 Emmanuel Bertin -- IAP/CNRS/UPMC
+#	Copyright:		(C) 2003-2016 IAP/CNRS/UPMC
 #
 #	License:		GNU General Public License
 #
@@ -22,7 +22,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with STIFF.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Last modified:		23/05/2016
+#	Last modified:		07/06/2016
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -33,7 +33,7 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 # This is your standard Bertin source code...
-AC_INIT(stiff, 2.6.1, [bertin@iap.fr])
+AC_INIT(stiff, 2.7.0, [bertin@iap.fr])
 AC_CONFIG_SRCDIR(src/makeit.c)
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_HEADERS(config.h)
@@ -107,7 +107,7 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MMAP
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
-AC_CHECK_FUNCS([atexit memmove memset munmap strchr strpbrk strrchr strspn strcspn strtol])
+AC_CHECK_FUNCS([atexit getenv memmove memset munmap setlinebuf strchr strpbrk strrchr strspn strcspn strtol])
 AC_CHECK_FUNC([isnan], AC_DEFINE_UNQUOTED([HAVE_ISNAN2], 1,
 		[Second isnan check]))
 

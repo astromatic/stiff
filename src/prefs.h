@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2010 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2016 IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,12 +22,20 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		1/01/2016
+*	Last modified:		07/06/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 #ifndef _PREFS_H_
 #define _PREFS_H_
+
+#ifndef _TAG_H_
+#include "tag.h"
+#endif
+
+#define		MAXCHARL	16384	/* max. nb of chars in a string list */
+#define		MAXLIST		(MAXFILE)	/* max. nb of list members */
+#define		MAXLISTSIZE	(100*MAXLIST)	/* max size of list */
 
 /*--------------------------------- typedefs --------------------------------*/
 /*------------------------------- preferences -------------------------------*/
@@ -85,6 +93,13 @@ typedef struct
   int		nsat_val;		/* Number of parameters */
   double	badpixel_replacement[MAXFILE];/* Bad pixel replacement value */
   int		nbadpixel_replacement;	/* Number of parameters */
+/* Channel tagging */
+  enum {CHANNELTAGTYPE_FITS, CHANNELTAGTYPE_MANUAL, CHANNELTAGTYPE_MATCH}
+		channeltag_type;	/* Channel tagging type */
+  char 		channeltag_key[MAXCHAR];/* FITS keyword for channel tagging */
+  char		*(channel_tags[MAXTAG]);/* Channel tags */
+  int		nchannel_tags;		/* Number of parameters */
+
 /* Virtual memory handling */
   int		mem_max;		/* Max amount of allocatable RAM */ 
   int		vmem_max;		/* Max amount of allocatable VMEM */ 
@@ -110,11 +125,9 @@ typedef struct
 
 prefstruct	prefs;
 
-/*----------------------------- Internal constants --------------------------*/
-
-#define		MAXLIST		32	/* max. nb of list members */
-
 /*-------------------------------- protos -----------------------------------*/
+extern char	*list_to_str(char *listname);
+
 extern int	cistrcmp(char *cs, char *ct, int mode);
 
 extern char	*mystrtok(char *str, const char *delim);

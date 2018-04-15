@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2009-2015 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2009-2016 IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		28/01/2015
+*	Last modified:		07/06/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -201,7 +201,7 @@ INPUT	Pointer to the output file (or stream),
 OUTPUT	RETURN_OK if everything went fine, RETURN_ERROR otherwise.
 NOTES	-.
 AUTHOR	E. Bertin (IAP)
-VERSION	05/10/2010
+VERSION	07/06/2016
  ***/
 int	write_xml_meta(FILE *file, char *error)
   {
@@ -332,6 +332,8 @@ int	write_xml_meta(FILE *file, char *error)
 	" ucd=\"obs.image;meta.fits\"/>\n");
   fprintf(file, "   <FIELD name=\"Image_Ident\" datatype=\"char\""
 	" arraysize=\"*\" ucd=\"meta.id;obs\"/>\n");
+  fprintf(file, "   <FIELD name=\"Image_ChannelTag\" datatype=\"char\""
+	" arraysize=\"*\" ucd=\"meta.id;instr.bandpass\"/>\n");
   fprintf(file, "   <FIELD name=\"Image_Size\" datatype=\"int\""
 	" arraysize=\"2\" ucd=\"pos.wcs.naxis;obs.image\" unit=\"pix\"/>\n");
   fprintf(file, "   <FIELD name=\"Level_Background\" datatype=\"float\""
@@ -343,12 +345,13 @@ int	write_xml_meta(FILE *file, char *error)
   fprintf(file, "   <DATA><TABLEDATA>\n");
   for (n=0; n<nxml; n++)
     fprintf(file, "    <TR>\n"
-	"     <TD>%d</TD><TD>%s</TD><TD>%s</TD>\n"
+	"     <TD>%d</TD><TD>%s</TD><TD>%s</TD><TD>%s</TD>\n"
 	"     <TD>%d %d</TD><TD>%g</TD><TD>%g</TD><TD>%g</TD>\n"
 	"    </TR>\n",
 	n+1,
 	field_xml[n]->rfilename,
 	*(field_xml[n]->ident)? field_xml[n]->ident : "(null)",
+	*(field_xml[n]->channeltag)? field_xml[n]->channeltag : "(null)",
 	field_xml[n]->size[0], field_xml[n]->size[1],
 	field_xml[n]->back,
 	field_xml[n]->min,
@@ -401,6 +404,11 @@ int	write_xml_meta(FILE *file, char *error)
     write_xmlconfigparam(file, "Pyramid_MinSize", "", "meta.number", "%d");
     write_xmlconfigparam(file, "Binning", "", "meta.number", "%d");
     write_xmlconfigparam(file, "Flip_Type", "", "meta.code;pos", "%s");
+    write_xmlconfigparam(file, "FITS_Unsigned", "", "meta.code", "%c");
+
+    write_xmlconfigparam(file, "ChannelTag_Type", "", "meta.code", "%s");
+    write_xmlconfigparam(file, "ChannelTag_Key", "", "meta.id", "%s");
+    write_xmlconfigparam(file, "Channel_Tags","","meta.id;instr.bandpass","%s");
 
     write_xmlconfigparam(file, "Sky_Type", "", "meta.code;instr.skyLevel","%s");
     write_xmlconfigparam(file, "Sky_Level", "adu",
@@ -417,6 +425,7 @@ int	write_xml_meta(FILE *file, char *error)
     write_xmlconfigparam(file, "Gamma_Fac", "", "arith.factor", "%g");
     write_xmlconfigparam(file, "Colour_Sat", "", "arith.factor", "%g");
     write_xmlconfigparam(file, "Negative", "", "meta.code", "%c");
+    write_xmlconfigparam(file, "BadPixel_Replacement","adu","phot.count","%g");
 
     write_xmlconfigparam(file, "VMem_Dir", "", "meta", "%s");
     write_xmlconfigparam(file, "VMem_Max", "Mbyte","meta.number;stat.max","%d");

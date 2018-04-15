@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2016 Emmanuel Bertin -- IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2016 IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		19/01/2016
+*	Last modified:		07/06/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -77,15 +77,18 @@ INPUT	Output filename,
 OUTPUT	-.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	05/07/2014
+VERSION	07/06/2016
  ***/
 void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   {
    imagestruct		*image;
-   catstruct		**cat;
-   tabstruct		**tab;
+   catstruct		**cat,
+			*descat;
+   tabstruct		**tab,
+			*destab;
    unsigned char	*extrapix;
-   char			*description;
+   char			keyword[80],
+			*description;
    double		*minvalue, *maxvalue;
    float		*fbuf[MAXFILE],
 			*fbuft0, *fbuft, *fsbuf;
@@ -135,6 +138,21 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
     maxvalue[a] = field[a]->max;
     }
 
+  if (prefs.header_flag) {
+/*-- Create a new dummy cat/tab for storing the description header */
+    descat = new_cat(1);
+    copy_tab_fromptr(tab[0], descat, 0);
+    destab = descat->tab;
+    for (a=0; a<nchan; a++) {
+/*---- Add CHANxxxx FITS keywords for storting the channel tags */
+      sprintf(keyword, "CHAN%04d", a+1);
+      addkeywordto_head(destab, keyword, "Channel tagname");
+      fitswrite(destab->headbuf, keyword, field[a]->channeltag,
+	H_STRING, T_STRING);
+    }
+  }
+
+
   flipxflag = (prefs.flip_type == FLIP_X) || (prefs.flip_type == FLIP_XY);
   flipyflag = (prefs.flip_type == FLIP_Y) || (prefs.flip_type == FLIP_XY);
   binsizex0 = prefs.bin_size[0];
@@ -153,7 +171,7 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
 		prefs.bigtiff_type, prefs.compress_type, prefs.compress_quality,
 		prefs.copyright,
 		prefs.header_flag? (description
-			= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
+			= fitshead_to_desc(destab->headbuf, destab->headnblock,
 			width,height, binsizex0, binsizey0,
 			flipxflag, flipyflag))
 			: prefs.description);
@@ -362,8 +380,10 @@ void	image_convert_single(char *filename, fieldstruct **field, int nchan)
   free(fsbuf);
   free(cat);
   free(tab);
-  if (prefs.header_flag)
+  if (prefs.header_flag) {
+    free_cat(&descat, 1);
     free(description);
+  }
 
   return;
   }
@@ -378,13 +398,15 @@ INPUT	File name,
 OUTPUT	Number of pyramid levels.
 NOTES	Uses the global preferences.
 AUTHOR	E. Bertin (IAP)
-VERSION	09/04/2015
+VERSION	07/06/2016
  ***/
 int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   {
    imagestruct		*image;
-   catstruct		**cat;
-   tabstruct		**tab;
+   catstruct		**cat,
+			*descat;
+   tabstruct		**tab,
+			*destab;
    float		*data[MAXFILE],
 			*datat,*datatt, *datao, *fbuf, *fbuft,*fbuftt, *fsbuf,
 			fpix, fac;
@@ -392,7 +414,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
    size_t		imoffset;
    size_t		ndata,ndatao;
    unsigned char	*pix;
-   char			*swapname[MAXFILE],
+   char			keyword[80], *swapname[MAXFILE],
 			*swapnameo, *description;
    int			a,i,l, w,h, x,y,my,ny,bx,by, nlevels, width,height,
 			fwidth,fheight, binsizex0,binsizey0, binsizex,binsizey,
@@ -441,6 +463,20 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
     maxvalue[a] = field[a]->max;
     }
 
+  if (prefs.header_flag) {
+/*-- Create a new dummy cat/tab for storing the description header */
+    descat = new_cat(1);
+    copy_tab_fromptr(tab[0], descat, 0);
+    destab = descat->tab;
+    for (a=0; a<nchan; a++) {
+/*---- Add CHANxxxx FITS keywords for storting the channel tags */
+      sprintf(keyword, "CHAN%04d", a+1);
+      addkeywordto_head(destab, keyword, "Channel tagname");
+      fitswrite(destab->headbuf, keyword, field[a]->channeltag,
+	H_STRING, T_STRING);
+    }
+  }
+
   set_maxdataram(prefs.mem_max);
   set_maxdatavram(prefs.vmem_max);
   set_dataswapdir(prefs.swapdir_name);
@@ -463,7 +499,7 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
 	minvalue, maxvalue, prefs.bigtiff_type, prefs.compress_type, prefs.compress_quality,
 	prefs.copyright,
 	prefs.header_flag? (description
-		= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
+		= fitshead_to_desc(destab->headbuf, destab->headnblock,
 		width,height, binx *= binsizex0, biny *= binsizey0,
 			flipxflag, flipyflag))
 		: prefs.description);
@@ -522,13 +558,14 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
       height = fheight/binsizey0;
       ndatao = ndata;
 
-      if (prefs.header_flag)
+      if (prefs.header_flag) {
         free(description);
+      }
       create_tiffdir(image, width, height, nchan, prefs.bpp, tilesize,
 		minvalue, maxvalue, prefs.compress_type, prefs.compress_quality,
 		prefs.copyright,
 		prefs.header_flag? (description
-			= fitshead_to_desc(tab[0]->headbuf, tab[0]->headnblock,
+			= fitshead_to_desc(destab->headbuf, destab->headnblock,
 			width,height, binx *= binsizex0, biny *= binsizey0,
 			flipxflag, flipyflag))
 			: prefs.description);
@@ -710,8 +747,10 @@ int	image_convert_pyramid(char *filename, fieldstruct **field, int nchan)
   cleanup_files();
   free(cat);
   free(tab);
-  if (prefs.header_flag)
+  if (prefs.header_flag) {
     free(description);
+    free_cat(&descat, 1);
+  }
 
   return nlevels;
   }
