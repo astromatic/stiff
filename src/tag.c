@@ -7,7 +7,7 @@
 *
 *	This file part of:	STIFF
 *
-*	Copyright:		(C) 2003-2016 IAP/CNRS/UPMC
+*	Copyright:		(C) 2003-2018 IAP/CNRS/UPMC
 *
 *	License:		GNU General Public License
 *
@@ -22,7 +22,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with STIFF. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		08/06/2016
+*	Last modified:		27/05/2018
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -51,7 +51,7 @@ INPUT   Array of pointers to fields,
 OUTPUT  -.
 NOTES   Global preferences are used.
 AUTHOR  E. Bertin (IAP)
-VERSION 08/06/2016
+VERSION 27/05/2018
 */
 void	tag_fields(fieldstruct **fields, int nfield)
   {
@@ -60,7 +60,7 @@ void	tag_fields(fieldstruct **fields, int nfield)
    int		f, fmax;
 
 /* Tag fields */
-  fmax = nfield;
+  fmax = prefs.nchannel_tags;
   for (f=0; f<nfield; f++) {
     field = fields[f];
     tab = field->tab;
